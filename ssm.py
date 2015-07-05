@@ -50,10 +50,11 @@ class SSM:
 		self.Q = np.matrix(np.eye(k))
 		self.R = np.matrix(np.diag(np.random.normal(size=p)))
 
-	def test1():
-		print self.F
+	#def test1(self):
+		#F = self.F
+		#print F
 		
-"""		self.xf = numeric(0)
+		self.xf = numeric(0)
 		self.vf = as.list(NULL)
 		self.xs0 = numeric(0)
 		self.xs = numeric(0)
@@ -119,4 +120,4 @@ class SSM:
 	
 	def em():
 		return 1
-"""
+
