@@ -38,82 +38,84 @@ sys_value = DataFrame(sys_value.T)
 obs_value = DataFrame(obs_value.T)
 
 
-
 class SSM:
 	def __init__(self, p, k):
 		self.sys_dim = p
 		self.obs_dim = k
 		self.x0mean = np.matrix(np.random.randn(p,1))
-		self.x0var = np.matrix(np.identity(p)) # fixed
-		self.F = np.matrix(np.random.randn(k,k))
-		self.H = np.matrix(np.eye(p,k))
-		self.Q = np.matrix(np.eye(k))
-		self.R = np.matrix(np.diag(np.random.normal(size=p)))
+		self.x0var = np.matrix(np.eye(p)) # fixed
+		self.F = np.matrix(np.random.randn(k,k)) # system transition matrix
+		self.Q = np.matrix(np.eye(k)) # system noise variance
+		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
+		self.R = np.matrix(np.diag(np.random.normal(size=p))) # observation noise variance
 
-	#def test1(self):
-		#F = self.F
-		#print F
-		
-		self.xf = numeric(0)
-		self.vf = as.list(NULL)
-		self.xs0 = numeric(0)
-		self.xs = numeric(0)
-		self.vs0 = numeric(0)
-		self.vs = as.list(NULL)
-		self.vLag = as.list(NULL)
+		self.xf = np.empty([self.sys_dim, 0])
+		self.vf = []
+		self.xs0 = np.empty([0,self.sys_dim, 0])
+		self.xs = np.empty([0,self.sys_dim, 0])
+		self.vs0 = []
+		self.vs = []
+		self.vLag = []
 
 	#def set_params:
 		
-	def kf(maxT, Yobs):
+	def kf(self, obs):
 
-		X0mean = self.x0mean
-		X0var = self.x0var
-		F = self.f
-		H = self.h
-		Q = self.q
-		R = self.r
+		N = obs.shape[0]
+		Yobs = np.matrix(obs.T)
+		p = self.sys_dim
+		k = self.obs_dim
+		x0mean = self.x0mean
+		x0var = self.x0var
+		F = self.F
+		H = self.H
+		Q = self.Q
+		R = self.R
+		xf = self.xf
+		vf = self.vf
 
-		x0 = np.matrix(np.random.multivariate_normal(mp.asarray(X0mean.T), np.asarray(X0var)))
-		xPri = np.matrix(sys_eq(x0,F,Q))
-		sigmaPri = [F * X0var * F.T + Q]
+		x0 = np.matrix(np.random.multivariate_normal(x0mean.T.tolist()[0], np.asarray(x0var))).T
+		xp = np.matrix(sys_eq(x0,F,Q))
+		vp = [F * x0var * F.T + Q]
 
-		for(i in np.arange(maxT)){
-		  #filtering
-		  K = sigmaPri[i]*H.T*(H%*%result$sigmaPri[[i]]%*%t(H) + R).I
-		  xPost = cbind(result$xPost,result$xPri[,i] + K%*%(Yobs[,i] - H%*%result$xPri[,i]))
-		  result$sigmaPost[[i]] = result$sigmaPri[[i]] - K%*%H%*%result$sigmaPri[[i]]
+		for i in range(N):
+			print i
+			# filtering
+			K = vp[i] * H.T * (H * vp[i] * H.T + R).I
+			xf = np.hstack([xf, xp[:,i] + K * (Yobs[:,i] - H * xp[:,i])])
+			vf.append(vp[i] - K * H * vp[i])
+			# prediction  
+			xp = np.hstack([xp,F * xf[:,i]])
+			vp.append(F * vf[i] * F.T + Q)
 
-		  #prediction  
-		  result$xPri = cbind(result$xPri,F%*%result$xPost[,i])
-		  result$sigmaPri[[i+1]] = F%*%result$sigmaPost[[i]]%*%t(F) + Q
+		# smoothing
+		J = []
+		J.insert(0, np.matrix(np.zeros([k,k])))
+		xs = xf[:,N-1]
+		vs = []
+		vs.insert(0, vf[N-1])
+		vLag = []
+		vLag.insert(0, F * vf[N-2] - K * H * vf[N-2])
+		
+		for i in reversed(range(N)[1:]):
+			print i
+			J.insert(0, vf[i-1] * F.T * vp[i].I)
+			print J[0]* (xs[:,0]-xp[:,i])
+			xs = np.hstack([xf[:,i-1] + J[0] * (xs[:,0]-xp[:,i]),xs])
+			vs.insert(0, vf[i-2] + J[0] * (vs[0]-vp[i]) * J[0].T)
+		
+		for i in reversed(range(N)[2:]):
+			print i
+			vLag.insert(0, vf[i-1] * J[i-1].T + J[i-1] * (vLag[0]-F * vf[i-1]) * J[i-2].T)
+		
+		J0 = x0var * F.T * vp[0].I
+		vLag[0] = vf[0] * J0.T + J[0] * (vLag[0]-F * vf[0]) * J0.T
+		xs0 = x0mean + J0 * (xs[:,0]-xp[:,0])
+		vs0 = x0var + J0 * (vs[0]-vp[0]) * J0.T
 
-		}
+		x0mean = xs0
 
-		#smoothing
-		J = as.list(NULL)
-		J[[maxT]] = matrix(rep(0,k*k),k,k)
-		result$xT = matrix(result$xPost[,maxT],k,1)
-		result$sigmaT = as.list(NULL)
-		result$sigmaT[[maxT]] = result$sigmaPost[[maxT]]
-		result$sigmaLag = as.list(NULL)
-		result$sigmaLag[[maxT]] = F%*%result$sigmaPost[[maxT-1]] - K%*%H%*%result$sigmaPost[[maxT-1]]
-
-		for(i in maxT:2){
-		  J[[i-1]] = result$sigmaPost[[i-1]]%*%t(F)%*%invM(result$sigmaPri[[i]])
-		  result$xT = cbind(result$xPost[,i-1] + J[[i-1]]%*%(result$xT[,1]-result$xPri[,i]),result$xT)
-		  result$sigmaT[[i-1]] = result$sigmaPost[[i-1]] + J[[i-1]]%*%(result$sigmaT[[i]]-result$sigmaPri[[i]])%*%t(J[[i-1]])
-		}
-		for(i in maxT:3){
-		  result$sigmaLag[[i-1]] = result$sigmaPost[[i-1]]%*%t(J[[i-1]]) + J[[i-1]]%*%(result$sigmaLag[[i]]-F%*%result$sigmaPost[[i-1]])%*%t(J[[i-2]])
-		}
-		J0 = X0var%*%t(F)%*%invM(result$sigmaPri[[1]])
-		result$sigmaLag[[1]] = result$sigmaPost[[1]]%*%t(J0) + J[[1]]%*%(result$sigmaLag[[2]]-F%*%result$sigmaPost[[1]])%*%t(J0)
-		result$xT0 = X0mean + J0%*%(result$xT[,1]-result$xPri[,1])
-		result$sigmaT0 = X0var + J0%*%(result$sigmaT[[1]]-result$sigmaPri[[1]])%*%t(J0)
-
-		result$x0mean = result$xT0
-
-		return result
+		return xs
 
 	def likelihood():
 		return 1
