@@ -6,39 +6,7 @@ from matplotlib import pyplot as plt
 def myfactrial(n):
 	return 1 if n==1 else n * myfactrial(n-1)
 
-# create data
-data = DataFrame(np.random.randn(10,4),columns=["a","b","c","d"])
-sys0 = DataFrame(np.random.randn(1,4),columns=["a","b","c","d"])
-
-matF = np.matrix(np.random.randn(4,4))
-matQ = np.matrix(np.random.randn(4,4))
-matH = np.matrix(np.random.randn(4,4))
-matR = np.matrix(np.random.randn(4,4))
-
-T = 20
-
-def sys_eq(x,F,Q):
-	dim = x.shape[0]
-	return np.asarray(F * x + np.random.normal(size=(dim,1)))
-  
-def obs_eq(x,H,R):
-	dim = x.shape[0]
-	return np.asarray(H * x + np.random.normal(size=(dim,1)))
-
-sys_value = np.asarray(sys0.T)
-obs_value = np.asarray(np.zeros((4,1)))
-i = 0
-while(i < T):
-	sysi = np.matrix(sys_value)[:,i]
-	sys_value = np.hstack((sys_value, sys_eq(sysi,matF,matQ)))
-	obs_value = np.hstack((obs_value, obs_eq(sysi,matH,matR)))
-	i += 1
-
-sys_value = DataFrame(sys_value.T)
-obs_value = DataFrame(obs_value.T)
-
-
-class SSM:
+class ssm:
 	def __init__(self, p, k):
 		self.sys_dim = p
 		self.obs_dim = k
@@ -48,74 +16,112 @@ class SSM:
 		self.Q = np.matrix(np.eye(k)) # system noise variance
 		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
 		self.R = np.matrix(np.diag(np.random.normal(size=p))) # observation noise variance
+	
+	def sys_eq(self, x):
+		return np.asarray(self.F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(self.Q))).T)
+	
+	def obs_eq(self, x):
+		return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,k]).tolist()[0], np.asarray(self.R))).T)
+	
+	def generate_data(self, N):
+		sys_value = np.random.randn(self.sys_dim,1)
+		obs_value = np.asarray(np.zeros((self.obs_dim,1)))
+		i = 0
+		while(i < N):
+			sysi = np.matrix(sys_value)[:,i]
+			sys_value = np.hstack((sys_value, sys_eq(sysi,self.F,self.Q)))
+			obs_value = np.hstack((obs_value, obs_eq(sysi,self.H,self.R)))
+			i += 1
 
-		self.xf = np.empty([self.sys_dim, 0])
+		sys_value = DataFrame(sys_value.T)
+		obs_value = DataFrame(obs_value.T)
+		return sys_value, obs_value #return as taple object
+
+class kalman(ssm):
+	def __init__(self, p, k):
+		# constant for kalman
+		self.ssm = ssm(p, k)
+
+		# variable for kalman
+		self.xp = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
+		self.vp = []
+		self.xf = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
 		self.vf = []
-		self.xs0 = np.empty([0,self.sys_dim, 0])
-		self.xs = np.empty([0,self.sys_dim, 0])
+		self.xs0 = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
+		self.xs = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
 		self.vs0 = []
 		self.vs = []
 		self.vLag = []
 
-	#def set_params:
-		
-	def kf(self, obs):
 
-		N = obs.shape[0]
+	def pfs(self, obs):
+		""" body of the kalman's method called prediction, filtering and smoothing """
+		
+		N = obs.shape[0] # number of time points
 		Yobs = np.matrix(obs.T)
-		p = self.sys_dim
-		k = self.obs_dim
-		x0mean = self.x0mean
-		x0var = self.x0var
-		F = self.F
-		H = self.H
-		Q = self.Q
-		R = self.R
-		xf = self.xf
+		
+		p = self.ssm.sys_dim
+		k = self.ssm.obs_dim
+		x0mean = self.ssm.x0mean
+		x0var = self.ssm.x0var
+		
+		F = self.ssm.F
+		H = self.ssm.H
+		Q = self.ssm.Q
+		R = self.ssm.R
+		xp = np.asmatrix(self.xp).T
+		vp = self.vp
+		xf = np.asmatrix(self.xf).T
 		vf = self.vf
+		xs = np.asmatrix(self.xs).T
+		vs = self.vs
+		vLag = self.vLag
 
 		x0 = np.matrix(np.random.multivariate_normal(x0mean.T.tolist()[0], np.asarray(x0var))).T
-		xp = np.matrix(sys_eq(x0,F,Q))
-		vp = [F * x0var * F.T + Q]
+		xp = np.hstack([xp, np.matrix(sys_eq(x0,F,Q))])
+		vp.append(F*x0var*F.T+Q)
 
 		for i in range(N):
-			print i
 			# filtering
-			K = vp[i] * H.T * (H * vp[i] * H.T + R).I
-			xf = np.hstack([xf, xp[:,i] + K * (Yobs[:,i] - H * xp[:,i])])
-			vf.append(vp[i] - K * H * vp[i])
+			K = vp[i]*H.T*(H*vp[i]*H.T+R).I
+			xf = np.hstack([xf, xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])])
+			vf.append(vp[i]-K*H*vp[i])
 			# prediction  
-			xp = np.hstack([xp,F * xf[:,i]])
-			vp.append(F * vf[i] * F.T + Q)
+			xp = np.hstack([xp, F*xf[:,i]])
+			vp.append(F*vf[i]*F.T+Q)
 
 		# smoothing
-		J = []
-		J.insert(0, np.matrix(np.zeros([k,k])))
+		J = [np.matrix(np.zeros([k,k]))]
 		xs = xf[:,N-1]
-		vs = []
 		vs.insert(0, vf[N-1])
-		vLag = []
-		vLag.insert(0, F * vf[N-2] - K * H * vf[N-2])
+		vLag.insert(0, F*vf[N-2]-K*H*vf[N-2])
 		
 		for i in reversed(range(N)[1:]):
-			print i
-			J.insert(0, vf[i-1] * F.T * vp[i].I)
-			print J[0]* (xs[:,0]-xp[:,i])
-			xs = np.hstack([xf[:,i-1] + J[0] * (xs[:,0]-xp[:,i]),xs])
-			vs.insert(0, vf[i-2] + J[0] * (vs[0]-vp[i]) * J[0].T)
+			J.insert(0, vf[i-1]*F.T*vp[i].I)
+			xs = np.hstack([xf[:,i-1]+J[0]*(xs[:,0]-xp[:,i]),xs])
+			vs.insert(0, vf[i-2]+J[0]*(vs[0]-vp[i])*J[0].T)
 		
 		for i in reversed(range(N)[2:]):
-			print i
-			vLag.insert(0, vf[i-1] * J[i-1].T + J[i-1] * (vLag[0]-F * vf[i-1]) * J[i-2].T)
+			vLag.insert(0, vf[i-1]*J[i-1].T+J[i-1]*(vLag[0]-F*vf[i-1])*J[i-2].T)
 		
-		J0 = x0var * F.T * vp[0].I
-		vLag[0] = vf[0] * J0.T + J[0] * (vLag[0]-F * vf[0]) * J0.T
-		xs0 = x0mean + J0 * (xs[:,0]-xp[:,0])
-		vs0 = x0var + J0 * (vs[0]-vp[0]) * J0.T
+		J0 = x0var*F.T*vp[0].I
+		vLag[0] = vf[0]*J0.T+J[0]*(vLag[0]-F*vf[0])*J0.T
+		xs0 = x0mean+J0*(xs[:,0]-xp[:,0])
+		vs0 = x0var+J0*(vs[0]-vp[0])*J0.T
 
 		x0mean = xs0
 
-		return xs
+		self.xp = DataFrame(xp.T)
+		self.vp = vp
+		self.xf = DataFrame(xf.T)
+		self.vf = vf
+		self.xs0 = DataFrame(xs0.T)
+		self.xs = DataFrame(xs.T)
+		self.vs0 = vs0
+		self.vs = vs
+		self.vLag = vLag
+		
+		return DataFrame(xs.T)
 
 	def likelihood():
 		return 1
@@ -123,3 +129,11 @@ class SSM:
 	def em():
 		return 1
 
+
+if __name__ == "__main__":
+	tmp = kalman(10,10)
+	data = tmp.ssm.generate_data(20)
+	result = tmp.pfs(data[1])
+	ros = data[1]-result
+	plt.plot(ros)
+	plt.show()
