@@ -43,6 +43,8 @@ class kalman(ssm):
 		self.ssm = ssm(p, k)
 
 		# variable for kalman
+		self.x0mean = self.ssm.x0mean
+		self.x0var = self.ssm.x0var
 		self.xp = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
 		self.vp = []
 		self.xf = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
@@ -53,17 +55,19 @@ class kalman(ssm):
 		self.vs = []
 		self.vLag = []
 
+	def set_obs(self, data):
+		self.obs = data
 
-	def pfs(self, obs):
+	def pfs(self):
 		""" body of the kalman's method called prediction, filtering and smoothing """
 		
-		N = obs.shape[0] # number of time points
-		Yobs = np.matrix(obs.T)
+		N = self.obs.shape[0] # number of time points
+		Yobs = np.matrix(self.obs.T)
 		
 		p = self.ssm.sys_dim
 		k = self.ssm.obs_dim
-		x0mean = self.ssm.x0mean
-		x0var = self.ssm.x0var
+		x0mean = self.x0mean
+		x0var = self.x0var
 		
 		F = self.ssm.F
 		H = self.ssm.H
@@ -109,8 +113,7 @@ class kalman(ssm):
 		xs0 = x0mean+J0*(xs[:,0]-xp[:,0])
 		vs0 = x0var+J0*(vs[0]-vp[0])*J0.T
 
-		x0mean = xs0
-
+		self.x0mean = xs0
 		self.xp = DataFrame(xp.T)
 		self.vp = vp
 		self.xf = DataFrame(xf.T)
@@ -121,9 +124,37 @@ class kalman(ssm):
 		self.vs = vs
 		self.vLag = vLag
 		
-		return DataFrame(xs.T)
+		return #DataFrame(xs.T)
 
-	def likelihood():
+	def llh(N,p,k):
+		Yobs = np.matrix(self.obs.T)
+		x0var = self.x0var
+		F = self.F
+		H = self.H
+		Q = self.Q
+		R = self.R
+		
+		S11 = self.xs[:,1]*self.xs[:,1].T + self.vs[1]
+		S10 = self.xs[:,1]*self.xs0.T + self.vLag[1]
+		S00 = self.xs0*self.xs0.T + x0var
+		Syy = Yobs[:,1]*Yobs[:,1].T
+		Syx = Yobs[:,1]*self.xs[:,1].T
+		llh = 0
+
+		for i in range(N)[1:]:
+			S11 = S11 + self.xs[:,i]*self.xs[:,i].T + self.vs[i]
+			S10 = S10 + self.xs[:,i]*self.xs[:,i-1].T + self.vLag[i]
+			S00 = S00 + self.xs[:,i-1]*self.xs[:,i-1].T + self.vs[i-1]
+			Syy = Syy + Yobs[:,i]*Yobs[:,i].T
+			Syx = Syx + Yobs[:,i]*self.xs[:,i].T
+		
+		tmp = diag(0,p)
+
+		for i in range(N):
+			tmp = tmp + (Yobs[:,i]-H*self.xs[:,i])*(Yobs[:,i]-H*self.xs[:,i]).T + H*self.vs[i]*H.T
+
+		llh = (-1/2)*(log(det(x0var)) + sum(diag(x0var.I*(self.vs0+(self.xs0-self.x0mean)*(self.xs0-self.x0mean).T))) + N*log(det(Q)) + sum(diag(Q.I*(S11-S10*F.T-F*S10.T+F*S00*F.T))) + N*log(det(R)) + sum(diag(R.I*tmp)) + (k+N*(k+p))*log(2*pi))
+		
 		return 1
 	
 	def em():
@@ -131,9 +162,10 @@ class kalman(ssm):
 
 
 if __name__ == "__main__":
-	tmp = kalman(10,10)
-	data = tmp.ssm.generate_data(20)
-	result = tmp.pfs(data[1])
-	ros = data[1]-result
-	plt.plot(ros)
+	kl = kalman(10,10)
+	data = kl.ssm.generate_data(20)
+	kl.set_obs(data[1])
+	for i in range(100): kl.pfs
+	loss = data[1]-kl.xs
+	plt.plot(loss)
 	plt.show()
