@@ -8,20 +8,22 @@ def myfactrial(n):
 
 class ssm:
 	def __init__(self, p, k):
-		self.sys_dim = p
-		self.obs_dim = k
-		self.x0mean = np.matrix(np.random.randn(p,1))
-		self.x0var = np.matrix(np.eye(p)) # fixed
+		self.obs_dim = p
+		self.sys_dim = k
+		self.x0mean = np.matrix(np.random.randn(k, 1))
+		self.x0var = np.matrix(np.eye(k)) # fixed
 		self.F = np.matrix(np.random.randn(k,k)) # system transition matrix
+		#self.F = np.matrix(DataFrame(self.F).applymap(lambda x: 0 if np.abs(x)>0.5 else x))
+		self.F[abs(self.F)<1] = 0
 		self.Q = np.matrix(np.eye(k)) # system noise variance
 		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
 		self.R = np.matrix(np.diag(np.random.normal(size=p))) # observation noise variance
 	
-	def sys_eq(self, x):
-		return np.asarray(self.F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(self.Q))).T)
+	def sys_eq(self, x, F, Q):
+		return np.asarray(F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(Q))).T)
 	
-	def obs_eq(self, x):
-		return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,k]).tolist()[0], np.asarray(self.R))).T)
+	def obs_eq(self, x, H, R):
+		return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
 	
 	def generate_data(self, N):
 		sys_value = np.random.randn(self.sys_dim,1)
@@ -29,10 +31,9 @@ class ssm:
 		i = 0
 		while(i < N):
 			sysi = np.matrix(sys_value)[:,i]
-			sys_value = np.hstack((sys_value, sys_eq(sysi,self.F,self.Q)))
-			obs_value = np.hstack((obs_value, obs_eq(sysi,self.H,self.R)))
+			sys_value = np.hstack((sys_value, self.sys_eq(sysi, self.F, self.Q)))
+			obs_value = np.hstack((obs_value, self.obs_eq(sysi, self.H, self.R)))
 			i += 1
-
 		sys_value = DataFrame(sys_value.T)
 		obs_value = DataFrame(obs_value.T)
 		return sys_value, obs_value #return as taple object
@@ -41,10 +42,13 @@ class kalman(ssm):
 	def __init__(self, p, k):
 		# constant for kalman
 		self.ssm = ssm(p, k)
-
 		# variable for kalman
 		self.x0mean = self.ssm.x0mean
 		self.x0var = self.ssm.x0var
+		self.F = self.ssm.F
+		self.H = self.ssm.H
+		self.Q = self.ssm.Q
+		self.R = self.ssm.R
 		self.xp = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
 		self.vp = []
 		self.xf = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
@@ -64,31 +68,33 @@ class kalman(ssm):
 		N = self.obs.shape[0] # number of time points
 		Yobs = np.matrix(self.obs.T)
 		
-		p = self.ssm.sys_dim
-		k = self.ssm.obs_dim
+		p = self.ssm.obs_dim
+		k = self.ssm.sys_dim
 		x0mean = self.x0mean
 		x0var = self.x0var
 		
-		F = self.ssm.F
-		H = self.ssm.H
-		Q = self.ssm.Q
-		R = self.ssm.R
-		xp = np.asmatrix(self.xp).T
+		F = self.F
+		H = self.H
+		Q = self.Q
+		R = self.R
+		#xp = np.matrix(np.empty([k, 0])).T #np.matrix(self.xp.T)
 		vp = self.vp
-		xf = np.asmatrix(self.xf).T
+		#xf = np.matrix(self.xf.T)
 		vf = self.vf
-		xs = np.asmatrix(self.xs).T
+		#xs = np.matrix(np.empty([k, 0])).T #np.matrix(self.xs.T)
 		vs = self.vs
 		vLag = self.vLag
 
 		x0 = np.matrix(np.random.multivariate_normal(x0mean.T.tolist()[0], np.asarray(x0var))).T
-		xp = np.hstack([xp, np.matrix(sys_eq(x0,F,Q))])
+		xp = np.matrix(self.ssm.sys_eq(x0,F,Q))
 		vp.append(F*x0var*F.T+Q)
 
 		for i in range(N):
 			# filtering
 			K = vp[i]*H.T*(H*vp[i]*H.T+R).I
-			xf = np.hstack([xf, xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])])
+			#print xf
+			#print xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])
+			xf = xp[:,i]+K*(Yobs[:,i]-H*xp[:,i]) if i == 0 else np.hstack([xf, xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])])
 			vf.append(vp[i]-K*H*vp[i])
 			# prediction  
 			xp = np.hstack([xp, F*xf[:,i]])
@@ -142,36 +148,43 @@ class kalman(ssm):
 		self.Syy = Syy
 		self.Syx = Syx
 		
-		return #DataFrame(xs.T)
+		#return #DataFrame(xs.T)
 
 class Expectation_Maximization:
-	def __init__(self, data, sys_dim):
+	def __init__(self, data, *sys_dim):
 		# kalman instance for em
 		self.data = data
-		self.p = sys_dim
-		self.k = data.shape[1]
+		self.p = data.shape[1]
+		self.k = sys_dim[0] if sys_dim else self.p
 		self.N = data.shape[0]
 		
 		self.kl = kalman(self.p, self.k)
+		self.kl.set_data(self.data)
 		# variable for em
-		self.F = self.kl.ssm.F
-		self.Q = self.kl.ssm.Q
-		self.H = self.kl.ssm.H
-		self.R = self.kl.ssm.R
-		self.llh = [0]
+		self.x0mean = self.kl.x0mean
+		self.x0var = self.kl.x0var
+		self.F = self.kl.F
+		self.Q = self.kl.Q
+		self.H = self.kl.H
+		self.R = self.kl.R
+		self.llh = [-1e5]
 		
 	def __Estep(self):
 		""" Private method: Expectation step of EM algorithm for SSM """
 
 		# execute kalman's algorithm(prediction, filtering and smoothing)
-		Yobs = np.matrix(self.data.T)
-		self.kl.set_data(self.data)
+		#Yobs = np.matrix(self.data.T)
+		self.kl.F = self.F
+		self.kl.H = self.H
+		self.kl.Q = self.Q
+		self.kl.R = self.R
+		self.kl.x0mean = self.x0mean
+		self.kl.x0var = self.x0var
 		self.kl.pfs()
 
 		p = self.p
 		k = self.k
 		N = self.N
-		x0var = self.kl.x0var
 		F = self.F
 		H = self.H
 		Q = self.Q
@@ -193,20 +206,19 @@ class Expectation_Maximization:
 		#for i in range(N):
 			#tmp += (Yobs[:,i]-H*xs[:,i])*(Yobs[:,i]-H*xs[:,i]).T + H*vs[i]*H.T
 
-		#likelihood = (-1/2)*(log(det(x0var)) + trace(x0var.I*(vs0+(xs0-x0mean)*(xs0-x0mean).T)) + N*log(det(Q)) + trace(Q.I*(S11-S10*F.T-F*S10.T+F*S00*F.T)) + N*log(det(R)) + trace(R.I*tmp) + (k+N*(k+p))*log(2*pi))
+		#likelihood = (-1/2)*(np.log(np.linalg.det(x0var)) + np.trace(x0var.I*(vs0+(xs0-x0mean)*(xs0-x0mean).T)) + N*np.log(np.linalg.det(Q)) + np.trace(Q.I*(S11-S10*F.T-F*S10.T+F*S00*F.T)) + N*np.log(np.linalg.det(R)) + np.trace(R.I*tmp) + (k+N*(k+p))*np.log(2*np.pi))
 
-		likelihood = log(det(x0var)) + trace(inv(x0var)*(vs0+(xs0-x0mean)*(xs0-x0mean).T)) + N*log(det(R)) + trace(inv(R)*(Syy+H*S11*H.T-Syx*H.T-H*Syx.T)) + N*log(det(Q)) + trace(inv(Q)*(S11+F*S00*F.T-S10*F.T-F*S10.T)) + (k+N*(k+p))*log(2*pi)
+		logllh = np.log(np.linalg.det(x0var)) + np.trace(np.linalg.inv(x0var)*(vs0+(xs0-x0mean)*(xs0-x0mean).T)) + N*np.log(np.linalg.det(R)) + np.trace(np.linalg.inv(R)*(Syy+H*S11*H.T-Syx*H.T-H*Syx.T)) + N*np.log(np.linalg.det(Q)) + np.trace(np.linalg.inv(Q)*(S11+F*S00*F.T-S10*F.T-F*S10.T)) + (k+N*(k+p))*np.log(2*np.pi)
 
-		print N*log(det(R))
-		likelihood = (-1/2)*likelihood
-		print likelihood
-		self.llh.append(likelihood)
+		#print N*np.log(np.linalg.det(R))
+		logllh = (-1/2)*logllh
+		#print logllh
+		self.llh.append(logllh)
 
 
 	def __Mstep(self):
 		""" Private method: Maximization step of EM algorithm for SSM """
 		Yobs = np.matrix(self.data.T)
-
 		p = self.p
 		k = self.k
 		N = self.N
@@ -221,57 +233,62 @@ class Expectation_Maximization:
 		xs = np.matrix(self.kl.xs.T)
 		xs0 = self.kl.xs0
 		vs = self.kl.vs
-		
+		vs0 = self.kl.vs0
 		self.F = S10*S00.I
 		self.H = Syx*S11.I
 		self.Q = (S11 - S10*S00.I*S10.T)/N
+		self.R = np.diag(np.diag(Syy - Syx*np.linalg.inv(S11)*Syx.T))/N
+		self.x0mean = np.asarray(xs0.T)
+		self.x0var = vs0
 
-		tmp = np.matrix(np.zeros([p,p]))
-		rtmp = 0
-		for i in range(N):
-			#print xs[:,i]
-			tmp += (Yobs[:,i]-H*xs[:,i])*(Yobs[:,i]-H*xs[:,i]).T + H*vs[i]*H.T
-			rtmp += trace((Yobs[:,i]-H*xs[:,i])*(Yobs[:,i]-H*xs[:,i]).T + H*vs[i]*H.T)
-			
-		rtmp = rtmp/(N*p)
-		
-		self.R = tmp/N
-
-		self.x0mean = xs0
-        #self.x0var = sigmaT0
-
-        #modification for CSSM
-		#if 0:
-			#Q = diag(1,m)
-			#self.r = (1/maxT)*diag(c(diag(self.Syy - self.Syx*invM(self.S11)*t(self.Syx))),p)
-            #self.r = (1/maxT)*diag(diag(self.Syy - self.Syx*invM(self.S11)*t(self.Syx)),p)
-		    #self.r = diag(rtmp,p)
-
-		#return 1
-
+ 
 	def execute(self):
 		""" Execute EM algorithm """
-
 		count = 0
-		while count<100:
+		diff = 100
+		while diff>1e-3 and count<5000:
 			print "#",
 			self.__Estep()
 			self.__Mstep()
-
 			count += 1
-
+			diff = abs(self.llh[count] - self.llh[count-1])
+			print diff
 		print "#"
 		return 1
 
 if __name__ == "__main__":
-	kl = kalman(10,10)
-	data = kl.ssm.generate_data(20)
+	obs_p = 5
+	sys_k = 3
+	N = 20
+	kl = kalman(obs_p,sys_k)
+	data = kl.ssm.generate_data(N)
 	#kl.set_data(data[1])
 	#kl.pfs()
 	#for i in range(100): kl.pfs()
-	em = Expectation_Maximization(data[0],10)
+	em = Expectation_Maximization(data[1], sys_k)
 	em.execute()
-	loss = data[1]-em.kl.xs
+
+	if 0:
+		fig, axes = plt.subplots(np.int(np.ceil(sys_k/3.0)), 3, sharex=True)
+		j = 0
+		for i in range(3):
+			while j<sys_k:
+				if sys_k<=3:
+					axes[j%3].plot(data[0][j], "k--", label="obs")
+					axes[j%3].plot(em.kl.xp[j], label="prd")
+					axes[j%3].legend(loc="best")
+					axes[j%3].set_title(j)
+				else:
+					axes[i, j%3].plot(data[0][j], "k--", label="obs")
+					axes[i, j%3].plot(em.kl.xp[j], label="prd")
+					axes[i, j%3].legend(loc="best")
+					axes[i, j%3].set_title(j)
+				j += 1
+				if j%3 == 2: break
+
+		fig.show()
+		
+	#loss = data[0]-em.kl.xs
 	#plt.plot(loss)
-	plt.plot(em.llh)
-	plt.show()
+	#plt.plot(em.llh)
+	#plt.show()
