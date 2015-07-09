@@ -3,8 +3,6 @@ import pandas as pd
 from pandas import Series, DataFrame
 from matplotlib import pyplot as plt
 
-def myfactrial(n):
-	return 1 if n==1 else n * myfactrial(n-1)
 
 class ssm:
 	def __init__(self, p, k):
@@ -17,7 +15,7 @@ class ssm:
 		self.F[abs(self.F)<1] = 0
 		self.Q = np.matrix(np.eye(k)) # system noise variance
 		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
-		self.R = np.matrix(np.diag(np.random.normal(size=p))) # observation noise variance
+		self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
 	
 	def sys_eq(self, x, F, Q):
 		return np.asarray(F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(Q))).T)
@@ -167,7 +165,7 @@ class Expectation_Maximization:
 		self.Q = self.kl.Q
 		self.H = self.kl.H
 		self.R = self.kl.R
-		self.llh = [-1e5]
+		self.llh = []
 		
 	def __Estep(self):
 		""" Private method: Expectation step of EM algorithm for SSM """
@@ -210,7 +208,12 @@ class Expectation_Maximization:
 
 		logllh = np.log(np.linalg.det(x0var)) + np.trace(np.linalg.inv(x0var)*(vs0+(xs0-x0mean)*(xs0-x0mean).T)) + N*np.log(np.linalg.det(R)) + np.trace(np.linalg.inv(R)*(Syy+H*S11*H.T-Syx*H.T-H*Syx.T)) + N*np.log(np.linalg.det(Q)) + np.trace(np.linalg.inv(Q)*(S11+F*S00*F.T-S10*F.T-F*S10.T)) + (k+N*(k+p))*np.log(2*np.pi)
 
-		#print N*np.log(np.linalg.det(R))
+		print "\t(1)\t", np.trace(np.linalg.inv(x0var)*(vs0+(xs0-x0mean)*(xs0-x0mean).T))
+		print "\t(2)\t", N*np.log(np.linalg.det(R))
+		print "\t(3)\t", np.trace(np.linalg.inv(R)*(Syy+H*S11*H.T-Syx*H.T-H*Syx.T))
+		print "\t(4)\t", N*np.log(np.linalg.det(Q))
+		print "\t(5)\t", np.trace(np.linalg.inv(Q)*(S11+F*S00*F.T-S10*F.T-F*S10.T))
+
 		logllh = (-1/2)*logllh
 		#print logllh
 		self.llh.append(logllh)
@@ -236,7 +239,7 @@ class Expectation_Maximization:
 		vs0 = self.kl.vs0
 		self.F = S10*S00.I
 		self.H = Syx*S11.I
-		self.Q = (S11 - S10*S00.I*S10.T)/N
+		#self.Q = (S11 - S10*S00.I*S10.T)/N
 		self.R = np.diag(np.diag(Syy - Syx*np.linalg.inv(S11)*Syx.T))/N
 		self.x0mean = np.asarray(xs0.T)
 		self.x0var = vs0
@@ -247,18 +250,18 @@ class Expectation_Maximization:
 		count = 0
 		diff = 100
 		while diff>1e-3 and count<5000:
-			print "#",
+			print count,
 			self.__Estep()
 			self.__Mstep()
+			if count>0: diff = abs(self.llh[count] - self.llh[count-1])
+			print "\tllh:", self.llh[count]
 			count += 1
-			diff = abs(self.llh[count] - self.llh[count-1])
-			print diff
-		print "#"
-		return 1
+		#print "#"
+		#return 1
 
 if __name__ == "__main__":
-	obs_p = 5
-	sys_k = 3
+	obs_p = 2
+	sys_k = 2
 	N = 20
 	kl = kalman(obs_p,sys_k)
 	data = kl.ssm.generate_data(N)
@@ -268,7 +271,7 @@ if __name__ == "__main__":
 	em = Expectation_Maximization(data[1], sys_k)
 	em.execute()
 
-	if 0:
+	if 1:
 		fig, axes = plt.subplots(np.int(np.ceil(sys_k/3.0)), 3, sharex=True)
 		j = 0
 		for i in range(3):
