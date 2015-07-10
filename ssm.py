@@ -146,7 +146,6 @@ class kalman(ssm):
 		self.Syy = Syy
 		self.Syx = Syx
 		
-		#return #DataFrame(xs.T)
 
 class Expectation_Maximization:
 	def __init__(self, data, *sys_dim):
