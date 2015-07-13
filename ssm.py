@@ -35,8 +35,10 @@ class EM:
 		self.kl.R = self.R
 		self.kl.x0mean = self.x0mean
 		self.kl.x0var = self.x0var
-		self.kl.pfs()
 
+		self.kl.pfs()
+		self.kl.set_pfs_results()
+		
 		p = self.p
 		k = self.k
 		N = self.N

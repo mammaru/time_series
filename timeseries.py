@@ -4,7 +4,6 @@ from numpy.random import *
 from pandas import DataFrame, Series
 #from matplotlib import pyplot as plt
 
-
 class VectorAutoRegressiveModel:
 	def __init__(self, p):
 		self.dim = p
@@ -85,6 +84,40 @@ class Kalman(StateSpaceModel):
 	def set_data(self, data):
 		self.obs = data
 
+	def set_pfs_results(self):
+		Yobs = np.matrix(self.obs.T)
+		N = self.obs.shape[0] # number of time points
+		
+		xs0 = np.matrix(self.xs0.T)
+		xp = np.matrix(self.xp.T)
+		vp = self.vp
+		xf = np.matrix(self.xf.T)
+		vf = self.vf
+		xs0 = np.matrix(self.xs0.T)
+		xs = np.matrix(self.xs.T)
+		vs0 = self.vs0
+		vs = self.vs
+		vLag = self.vLag
+
+		S11 = xs[:,0]*xs[:,0].T + vs[0]
+		S10 = xs[:,0]*xs0.T + vLag[0]
+		S00 = xs0*xs0.T + x0var
+		Syy = Yobs[:,0]*Yobs[:,0].T
+		Syx = Yobs[:,0]*xs[:,0].T
+		for i in range(N)[1:]:
+			S11 += xs[:,i-1]*xs[:,i-1].T + vs[i-1]
+			S10 += xs[:,i-1]*xs[:,i-2].T + vLag[i-1]
+			S00 += xs[:,i-2]*xs[:,i-2].T + vs[i-2]
+			Syy += Yobs[:,i-1]*Yobs[:,i-1].T
+			Syx += Yobs[:,i-1]*xs[:,i-1].T
+		
+		self.S11 = S11
+		self.S10 = S10
+		self.S00 = S00
+		self.Syy = Syy
+		self.Syx = Syx
+		
+
 	def pfs(self):
 		""" body of the kalman's method called prediction, filtering and smoothing """
 		
@@ -108,20 +141,52 @@ class Kalman(StateSpaceModel):
 		vs = self.vs
 		vLag = self.vLag
 
-		x0 = np.matrix(np.random.multivariate_normal(x0mean.T.tolist()[0], np.asarray(x0var))).T
-		xp = np.matrix(self.ssm.sys_eq(x0,F,Q))
+		#x0 = np.matrix(np.random.multivariate_normal(x0mean.T.tolist()[0], np.asarray(x0var))).T
+		#xp = np.matrix(self.ssm.sys_eq(x0,F,Q))
+		xp = np.matrix(F*x0mean)
 		vp.append(F*x0var*F.T+Q)
 
-		for i in range(N):
-			# filtering
-			K = vp[i]*H.T*(H*vp[i]*H.T+R).I
-			#print xf
-			#print xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])
-			xf = xp[:,i]+K*(Yobs[:,i]-H*xp[:,i]) if i == 0 else np.hstack([xf, xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])])
-			vf.append(vp[i]-K*H*vp[i])
-			# prediction
-			xp = np.hstack([xp, F*xf[:,i]])
-			vp.append(F*vf[i]*F.T+Q)
+		if 0: # unequal intervals
+			interval = tp[2]-tp[1]
+			maxt = tp[maxT]/interval
+			t = tp[2]
+			j = 1
+			xP = f*result$xPost0x0mean
+			vP = list(f*result$vPost0*t(f) + q)
+			#x = result$xPost
+			#v = result$vPost
+			for i in range(maxt+1):
+				if interval*(i-1)==tp[j]: # obs exists
+					result$xPri = cbind(result$xPri,xP[,i])
+					result$vPri[[j]] = vP[[i]]
+
+					#filtering
+					K = vP[[i]]*t(h)*invM(h*vP[[i]]*t(h) + r)
+					x = xP[,i] + K*(Yobs[,j] - h*xP[,i])
+					v = vP[[i]] - K*h*vP[[i]]
+					result$xPost = cbind(result$xPost,x)
+					result$vPost[[j]] = v
+					j = j+1
+				else: # obs does not exist
+					x = xP[,i]
+					v = vP[[i]]
+					
+				#prediction
+				xP = cbind(xP,f*x)
+				vP[[i+1]] = f*v*t(f) + q
+			}
+			result$x = xP
+			result$v = vP
+
+		else: # equal intervals
+			for i in range(N):
+				# filtering
+				K = vp[i]*H.T*(H*vp[i]*H.T+R).I
+				xf = xp[:,i]+K*(Yobs[:,i]-H*xp[:,i]) if i == 0 else np.hstack([xf, xp[:,i]+K*(Yobs[:,i]-H*xp[:,i])])
+				vf.append(vp[i]-K*H*vp[i])
+				# prediction
+				xp = np.hstack([xp, F*xf[:,i]])
+				vp.append(F*vf[i]*F.T+Q)
 
 		# smoothing
 		J = [np.matrix(np.zeros([k,k]))]
@@ -141,18 +206,6 @@ class Kalman(StateSpaceModel):
 		vLag[0] = vf[0]*J0.T+J[0]*(vLag[0]-F*vf[0])*J0.T
 		xs0 = x0mean+J0*(xs[:,0]-xp[:,0])
 		vs0 = x0var+J0*(vs[0]-vp[0])*J0.T
-
-		S11 = xs[:,0]*xs[:,0].T + vs[0]
-		S10 = xs[:,0]*xs0.T + vLag[0]
-		S00 = xs0*xs0.T + x0var
-		Syy = Yobs[:,0]*Yobs[:,0].T
-		Syx = Yobs[:,0]*xs[:,0].T
-		for i in range(N)[1:]:
-			S11 += xs[:,i-1]*xs[:,i-1].T + vs[i-1]
-			S10 += xs[:,i-1]*xs[:,i-2].T + vLag[i-1]
-			S00 += xs[:,i-2]*xs[:,i-2].T + vs[i-2]
-			Syy += Yobs[:,i-1]*Yobs[:,i-1].T
-			Syx += Yobs[:,i-1]*xs[:,i-1].T
 		
 		self.xs0 = DataFrame(xs0.T)
 		self.xp = DataFrame(xp.T)
@@ -164,10 +217,4 @@ class Kalman(StateSpaceModel):
 		self.vs0 = vs0
 		self.vs = vs
 		self.vLag = vLag
-		
-		self.S11 = S11
-		self.S10 = S10
-		self.S00 = S00
-		self.Syy = Syy
-		self.Syx = Syx
-		
+
