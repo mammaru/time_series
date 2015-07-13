@@ -20,7 +20,7 @@ class VectorAutoRegressiveModel:
 
 	def gen_data(self, N):
 		y = np.matrix(self.y0mean.T)
-		for i in range(N):
+		for i in range(N-1):
 			e = np.matrix(np.random.multivariate_normal(np.zeros((1,self.dim)).tolist()[0], np.array(self.E))).T
 			y = np.matrix(np.hstack((np.array(y), np.array(self.A*y[:,i]+e))))
 		return DataFrame(y.T)
