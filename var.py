@@ -49,14 +49,15 @@ class SparseVAR(var):
 					#print np.sum(np.abs(bnew-bold))
 					if np.sum(np.abs(bnew-bold))<1e-5:
 						end_flag = 1
-					elif count > 100:
-						self.Ahat = Bnew.T
-						break
+					elif count > 30:
+						#self.Ahat = Bnew.T
+						#break
+						end_flag = 1
 					bold = bnew
 					#if(count%%10==0){cat(".")}
 
 				Bnew = np.hstack([Bnew,bnew])
-			print "."
+			#print "."
 			B = Bnew
 			
 		else:
@@ -72,11 +73,13 @@ class SparseVAR(var):
 		X = np.matrix(self.data.ix[:(N-2),])
 
 		gcvloss = []
-		for lmd in range(5):
+		for lmd in range(20):
+			print "lambda: ", lmd, "gcvloss:",
 			self.SVAR(lmd)
 			B = self.Ahat.T
 			gcv = []
 			for j in range(p):
+				#print ".",
 				rss = (Z[:,j]-X*B[:,j]).T*(Z[:,j]-X*B[:,j])
 				#b = apply(matrix(B[,j],length(B[,j]),1),c(1,2),if0thenthr=function(x){if(abs(x)==0){x = SVARthr};return(x)})
 				b = B[:,j]
@@ -93,6 +96,7 @@ class SparseVAR(var):
 				sumgcv = np.mean(gcv)
 				#sumgcv = median(gcv)  
 				#cat(".")
+			print sumgcv
 			gcvloss.append(sumgcv)
 
 		self.gcvloss = gcvloss
@@ -101,7 +105,7 @@ class SparseVAR(var):
 
 
 if __name__ == "__main__":
-	tmp = var(50)
+	tmp = var(100)
 	data = tmp.gen_data(20)
 
 	svar = SparseVAR()
