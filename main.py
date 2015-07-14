@@ -47,15 +47,15 @@ if __name__ == "__main__":
 	if 0:
 		draw_heatmap(np.array(B))
 	if 1:
-		G = nx.Graph()
+		DG = nx.DiGraph()
 		idxs = data.columns
 		for idx_from in idxs:
 			for idx_to in idxs:
-				if abs(B[idx_from][idx_to])>0: G.add_edge(idx_from, idx_to)
-		pos = nx.spring_layout(G)
-		nx.draw_networkx_nodes(G, pos, node_size = 100, node_color = 'w')
-		nx.draw_networkx_edges(G, pos, width = 1)
-		nx.draw_networkx_labels(G, pos, font_size = 12, font_family = 'sans-serif', font_color = 'r')
+				if abs(B[idx_from][idx_to])>0: DG.add_edge(idx_from, idx_to, weight=B[idx_from][idx_to])
+		pos = nx.spring_layout(DG)
+		nx.draw_networkx_nodes(DG, pos, node_size = 100, node_color = 'w')
+		nx.draw_networkx_edges(DG, pos)
+		nx.draw_networkx_labels(DG, pos, font_size = 12, font_family = 'sans-serif', font_color = 'r')
 		plt.xticks([])
 		plt.yticks([])
 		plt.show()
