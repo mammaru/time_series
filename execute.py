@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from var import *
+from svar import *
+from kalman import *
 
 def draw_heatmap(data, **labels):
 	fig, axis = plt.subplots(figsize=(10, 10))
@@ -47,3 +48,35 @@ if __name__ == "__main__":
 		##svar.SVAR(5)
 		B = svar.GCV()
 		draw_heatmap(np.array(B))
+
+
+	# kalman and EM
+	if 0:
+		sys_k = 5
+		em = EM(price, sys_k)
+		em.execute()
+
+		if 0:
+			fig, axes = plt.subplots(np.int(np.ceil(sys_k/3.0)), 3, sharex=True)
+			j = 0
+			for i in range(3):
+				while j<sys_k:
+					if sys_k<=3:
+						axes[j%3].plot(data[0][j], "k--", label="obs")
+						axes[j%3].plot(em.kl.xp[j], label="prd")
+						axes[j%3].legend(loc="best")
+						axes[j%3].set_title(j)
+					else:
+						axes[i, j%3].plot(data[0][j], "k--", label="obs")
+						axes[i, j%3].plot(em.kl.xp[j], label="prd")
+						axes[i, j%3].legend(loc="best")
+						axes[i, j%3].set_title(j)
+					j += 1
+					if j%3 == 2: break
+
+			fig.show()
+		
+			#loss = data[0]-em.kl.xs
+			#plt.plot(loss)
+			#plt.plot(em.llh)
+			#plt.show()
