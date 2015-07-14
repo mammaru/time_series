@@ -9,7 +9,7 @@ from timeseries import VectorAutoRegressiveModel as VAR
 SVARthr = 1e-12
 MAX_INT = sys.maxint
 
-class SparseVAR(var):
+class SparseVAR(VAR):
 	def __init__(self):
 		self.dim = 0 # dimention of vector
 		#self.var = VAR(p) # make instance of vector auto regressive model
