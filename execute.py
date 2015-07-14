@@ -4,22 +4,31 @@ from matplotlib import pyplot as plt
 from var import *
 
 def draw_heatmap(data, **labels):
-	fig, ax = plt.subplots()
-	heatmap = ax.pcolor(data, cmap=plt.cm.Blues)
+	fig, ax = plt.subplots(figsize=(10, 10))
+	heatmap = ax.pcolor(data, cmap=plt.cm.Reds)
 	ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
 	ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
 	ax.invert_yaxis()
 	ax.xaxis.tick_top()
 
 	if labels:
-		ax.set_xticklabels(row_labels, minor=False)
-		ax.set_yticklabels(column_labels, minor=False)
+		ax.set_xticklabels(labels["row"], minor=False)
+		ax.set_yticklabels(labels["column"], minor=False)
 
-    plt.show()
-    #plt.savefig('image.png')
-
+	plt.show()
+	#plt.savefig('image.png')
+	
 	return heatmap
 
+def draw_heatmap2(x, y):
+	heatmap, xedges, yedges = np.histogram2d(x, y, bins=50)
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+
+	plt.figure()
+	plt.imshow(heatmap, extent=extent)
+	plt.show()
+	#plt.savefig('image.png')
+	
 
 if __name__ == "__main__":
 	filename = "./ignr/data/exchange.dat"
