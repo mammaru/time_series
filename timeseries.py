@@ -151,32 +151,32 @@ class Kalman(StateSpaceModel):
 			maxt = tp[maxT]/interval
 			t = tp[2]
 			j = 1
-			xP = f*result$xPost0x0mean
-			vP = list(f*result$vPost0*t(f) + q)
-			#x = result$xPost
-			#v = result$vPost
+			xP = f*self.xPost0x0mean
+			vP = list(f*self.vPost0*t(f) + q)
+			#x = self.xPost
+			#v = self.vPost
 			for i in range(maxt+1):
 				if interval*(i-1)==tp[j]: # obs exists
-					result$xPri = cbind(result$xPri,xP[,i])
-					result$vPri[[j]] = vP[[i]]
+					self.xPri = cbind(self.xPri,xP[:,i])
+					self.vPri[j] = vP[i]
 
 					#filtering
-					K = vP[[i]]*t(h)*invM(h*vP[[i]]*t(h) + r)
-					x = xP[,i] + K*(Yobs[,j] - h*xP[,i])
-					v = vP[[i]] - K*h*vP[[i]]
-					result$xPost = cbind(result$xPost,x)
-					result$vPost[[j]] = v
+					K = vP[i]*t(h)*invM(h*vP[i]*t(h) + r)
+					x = xP[:,i] + K*(Yobs[:,j] - h*xP[:,i])
+					v = vP[i] - K*h*vP[i]
+					self.xPost = cbind(self.xPost,x)
+					self.vPost[j] = v
 					j = j+1
 				else: # obs does not exist
-					x = xP[,i]
-					v = vP[[i]]
+					x = xP[:,i]
+					v = vP[i]
 					
 				#prediction
 				xP = cbind(xP,f*x)
 				vP[[i+1]] = f*v*t(f) + q
-			}
-			result$x = xP
-			result$v = vP
+			
+			self.x = xP
+			self.v = vP
 
 		else: # equal intervals
 			for i in range(N):

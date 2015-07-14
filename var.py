@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from numpy.random import * 
 #import pandas as pd
@@ -7,6 +8,7 @@ from timeseries import VectorAutoRegressiveModel as var
 
 SVAR0 = 1e-7
 SVARthr = 1e-7
+MAX_INT = sys.maxint
 
 class SparseVAR(var):
 	def __init__(self):
@@ -15,7 +17,7 @@ class SparseVAR(var):
 		self.lmd = 0
 
 	def set_data(self, data):
-		self.data = data
+		self.data = data # input data is DataFrame
 		self.N = data.shape[0] # number of time points
 		self.dim = data.shape[1]
 
@@ -27,7 +29,8 @@ class SparseVAR(var):
 		else:
 			lmd = 0
 		Z = np.matrix(self.data.ix[1:,])
-		X = np.matrix(self.data.ix[:(N-2),])
+		X = np.matrix(self.data.ix[:(N-1),])
+		#print X.shape, Z.shape
 		Bold = (X.T*X+np.matrix(np.diag([lmd for i in range(p)]))).I*X.T*Z
 		Bnew = np.matrix(np.eye(p, 0))
 		if lmd:
@@ -70,10 +73,11 @@ class SparseVAR(var):
 		p = self.dim
 		N = self.N
 		Z = np.matrix(self.data.ix[1:,])
-		X = np.matrix(self.data.ix[:(N-2),])
+		X = np.matrix(self.data.ix[:(N-1),])
 
-		gcvloss = []
-		for lmd in range(20):
+		max_sumgcv = MAX_INT
+		gcvloss = Series(index=np.arange(0,5,0.2))
+		for lmd in np.arange(0,5,0.2):
 			print "lambda: ", lmd, "gcvloss:",
 			self.SVAR(lmd)
 			B = self.Ahat.T
@@ -97,10 +101,14 @@ class SparseVAR(var):
 				#sumgcv = median(gcv)  
 				#cat(".")
 			print sumgcv
-			gcvloss.append(sumgcv)
+			if sumgcv < max_sumgcv:
+				B_best = B
+				max_sumgcv = sumgcv
+				
+			gcvloss[lmd] = sumgcv
 
 		self.gcvloss = gcvloss
-		#return 1
+		return B_best
 
 
 
