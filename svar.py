@@ -6,7 +6,6 @@ from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from timeseries import VectorAutoRegressiveModel as VAR
 
-SVAR0 = 1e-7
 SVARthr = 1e-12
 MAX_INT = sys.maxint
 
@@ -105,10 +104,12 @@ class SparseVAR(var):
 
 
 if __name__ == "__main__":
-	tmp = VAR(100)
-	data = tmp.gen_data(20)
+	print "svar.py: Called in main process."
+	if 0:
+		tmp = VAR(100)
+		data = tmp.gen_data(20)
 
-	svar = SparseVAR()
-	svar.set_data(data)
-	#svar.SVAR(5)
-	svar.GCV()
+		svar = SparseVAR()
+		svar.set_data(data)
+		#svar.SVAR(5)
+		svar.GCV()
