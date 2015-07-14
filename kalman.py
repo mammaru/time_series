@@ -2,13 +2,13 @@ import numpy as np
 #import pandas as pd
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from timeseries import StateSpaceModel as ssm
+from timeseries import StateSpaceModel as SSM
 
 
-class Kalman(ssm):
+class Kalman(SSM):
 	def __init__(self, p, k):
 		# constant for kalman
-		self.ssm = ssm(p, k)
+		self.ssm = SSM(p, k)
 		# variable for kalman
 		self.x0mean = self.ssm.x0mean
 		self.x0var = self.ssm.x0var

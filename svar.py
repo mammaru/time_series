@@ -4,7 +4,7 @@ from numpy.random import *
 #import pandas as pd
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from timeseries import VectorAutoRegressiveModel as var
+from timeseries import VectorAutoRegressiveModel as VAR
 
 SVAR0 = 1e-7
 SVARthr = 1e-12
@@ -13,7 +13,7 @@ MAX_INT = sys.maxint
 class SparseVAR(var):
 	def __init__(self):
 		self.dim = 0 # dimention of vector
-		#self.var = var(p) # make instance of vector auto regressive model
+		#self.var = VAR(p) # make instance of vector auto regressive model
 		self.lmd = 0
 
 	def set_data(self, data):
@@ -105,7 +105,7 @@ class SparseVAR(var):
 
 
 if __name__ == "__main__":
-	tmp = var(100)
+	tmp = VAR(100)
 	data = tmp.gen_data(20)
 
 	svar = SparseVAR()
