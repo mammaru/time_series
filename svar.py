@@ -6,7 +6,8 @@ from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from timeseries import VectorAutoRegressiveModel as VAR
 
-SVARthr = 1e-12
+SVARthr = 1e-5
+SVAR0 = 1e-20
 MAX_INT = sys.maxint
 
 class SparseVAR(VAR):
@@ -20,7 +21,7 @@ class SparseVAR(VAR):
 		self.N = data.shape[0] # number of time points
 		self.dim = data.shape[1]
 
-	def SVAR(self, *lmd):
+	def regression(self, *lmd):
 		p = self.dim
 		N = self.N
 		if lmd:
@@ -41,12 +42,13 @@ class SparseVAR(VAR):
 				while not end_flag:
 					count = count + 1
 					b = bold
-					#b[b==0] = SVAR0
+					b[b==0] = SVAR0
 					D = np.matrix(np.diag((lmd/np.abs(b.T)).tolist()[0]))
+					#print D
 					#bnew = invM( t(X)%*%X+(T-1)*D ) %*% t(X) %*% Z[,j]
 					bnew = (X.T*X+D).I*X.T*z
 					#bnew = apply(bnew,c(1,2),ifthrthen0=function(x){if(abs(x)<=SVARthr){x = 0};return(x)})
-					bnew[bnew<=SVARthr] = 0
+					bnew[bnew<SVARthr] = 0
 					if np.sum(np.abs(bnew-bold))<1e-5:
 						end_flag = 1
 					elif count > 30:
@@ -77,12 +79,13 @@ class SparseVAR(VAR):
 		gcvloss = Series(index=lmd_intarval)
 		for lmd in lmd_intarval:
 			print "lambda: ", lmd, "gcvloss:",
-			self.SVAR(lmd)
+			self.regression(lmd)
 			B = self.Ahat.T
 			gcv = []
 			for j in range(p):
 				rss = (Z[:,j]-X*B[:,j]).T*(Z[:,j]-X*B[:,j])
 				b = B[:,j]
+				b[b==0] = SVAR0
 				D = np.matrix(np.diag((lmd/np.abs(b.T)).tolist()[0]))
 				H = X*(X.T*X+D).I*X.T
 				d_free = np.sum(np.diag(H))
@@ -99,6 +102,7 @@ class SparseVAR(VAR):
 			gcvloss[lmd] = sumgcv
 
 		self.gcvloss = gcvloss
+		B_best[B_best<SVARthr] = 0
 		return B_best
 
 
@@ -111,5 +115,5 @@ if __name__ == "__main__":
 
 		svar = SparseVAR()
 		svar.set_data(data)
-		#svar.SVAR(5)
+		#svar.regression(5)
 		svar.GCV()

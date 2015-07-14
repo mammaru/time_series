@@ -25,7 +25,7 @@ def draw_heatmap(data, **labels):
 
 
 if __name__ == "__main__":
-	if 1:
+	if 0:
 		filename = "./ignr/data/exchange.dat"
 		#data = np.loadtxt(filename, delimiter="\t")
 		df = pd.read_table(filename, index_col="datetime")
@@ -33,22 +33,22 @@ if __name__ == "__main__":
 		#hourly = df.resample("H", how="mean") # hourly
 		daily = df.resample("D", how="mean") # daily
 		price = daily.ix[:, daily.columns.map(lambda x: x.endswith("PRICE"))]
-		value = daily.ix[:, daily.columns.map(lambda x: x.endswith("VALUE"))]
+		volume = daily.ix[:, daily.columns.map(lambda x: x.endswith("VOLUME"))]
 
 	# SVAR
-	if 1:
+	if 0:
 		data = price
 		svar = SparseVAR()
-		svar.set_data(price)
-		svar.SVAR(5)
+		svar.set_data(data)
+		#svar.regression(5)
 		
-		#B = svar.GCV()
-		#B = DataFrame(B, index=data.index, columns=data.index)
+		B = svar.GCV()
+		B = DataFrame(B.T, index=data.columns, columns=data.columns)
 	if 0:
 		draw_heatmap(np.array(B))
-	if 0:
+	if 1:
 		G = nx.Graph()
-		idxs = data.index
+		idxs = data.columns
 		for idx_from in idxs:
 			for idx_to in idxs:
 				if abs(B[idx_from][idx_to])>0: G.add_edge(idx_from, idx_to)
