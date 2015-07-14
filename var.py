@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from timeseries import VectorAutoRegressiveModel as var
 
 SVAR0 = 1e-7
-SVARthr = 1e-7
+SVARthr = 1e-12
 MAX_INT = sys.maxint
 
 class SparseVAR(var):
@@ -40,16 +40,14 @@ class SparseVAR(var):
 				bold = Bold[:,j]
 				count = 0
 				while not end_flag:
-					#print ".",
 					count = count + 1
 					b = bold
-					b[b==0] = SVARthr
+					#b[b==0] = SVAR0
 					D = np.matrix(np.diag((lmd/np.abs(b.T)).tolist()[0]))
 					#bnew = invM( t(X)%*%X+(T-1)*D ) %*% t(X) %*% Z[,j]
 					bnew = (X.T*X+D).I*X.T*z
 					#bnew = apply(bnew,c(1,2),ifthrthen0=function(x){if(abs(x)<=SVARthr){x = 0};return(x)})
 					bnew[bnew<=SVARthr] = 0
-					#print np.sum(np.abs(bnew-bold))
 					if np.sum(np.abs(bnew-bold))<1e-5:
 						end_flag = 1
 					elif count > 30:
@@ -67,7 +65,7 @@ class SparseVAR(var):
 			B = Bold
 
 		self.Ahat = B.T
-		#return self.Ahat
+
 
 	def GCV(self):
 		p = self.dim
@@ -76,26 +74,20 @@ class SparseVAR(var):
 		X = np.matrix(self.data.ix[:(N-1),])
 
 		max_sumgcv = MAX_INT
-		gcvloss = Series(index=np.arange(0,5,0.2))
-		for lmd in np.arange(0,5,0.2):
+		lmd_intarval = np.arange(0,10,1)
+		gcvloss = Series(index=lmd_intarval)
+		for lmd in lmd_intarval:
 			print "lambda: ", lmd, "gcvloss:",
 			self.SVAR(lmd)
 			B = self.Ahat.T
 			gcv = []
 			for j in range(p):
-				#print ".",
 				rss = (Z[:,j]-X*B[:,j]).T*(Z[:,j]-X*B[:,j])
-				#b = apply(matrix(B[,j],length(B[,j]),1),c(1,2),if0thenthr=function(x){if(abs(x)==0){x = SVARthr};return(x)})
 				b = B[:,j]
-				b[b==0] = SVARthr
-				#D = np.diag(lmd/np.abs(b))
 				D = np.matrix(np.diag((lmd/np.abs(b.T)).tolist()[0]))
-				#H = X%*%invM( t(X)%*%X+(lmd*lmd)*D )%*%t(X)
-				#H = X%*%invM( t(X)%*%X+(T-1)*D )%*%t(X)
 				H = X*(X.T*X+D).I*X.T
-				df = np.sum(np.diag(H))
-				gcvtmp = rss/((1-(df)/(N-1))**2)
-				gcvtmp /= N-1
+				d_free = np.sum(np.diag(H))
+				gcvtmp = rss/((1-(d_free)/(N-1))**2)*(N-1)
 				gcv.append(gcvtmp)
 				sumgcv = np.mean(gcv)
 				#sumgcv = median(gcv)  

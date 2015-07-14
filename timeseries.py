@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.random import *
+#from numpy import nan as NaN
 #import pandas as pd
 from pandas import DataFrame, Series
 #from matplotlib import pyplot as plt
@@ -83,6 +84,8 @@ class Kalman(StateSpaceModel):
 
 	def set_data(self, data):
 		self.obs = data
+		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
+		self.missing_data_flag = True if sum(np.sum(data)) else False
 
 	def set_pfs_results(self):
 		Yobs = np.matrix(self.obs.T)
@@ -151,8 +154,8 @@ class Kalman(StateSpaceModel):
 			maxt = tp[maxT]/interval
 			t = tp[2]
 			j = 1
-			xP = f*self.xPost0x0mean
-			vP = list(f*self.vPost0*t(f) + q)
+			xP = F*x0mean
+			vP = list(F*self.vPost0*F.T + Q)
 			#x = self.xPost
 			#v = self.vPost
 			for i in range(maxt+1):
@@ -161,9 +164,9 @@ class Kalman(StateSpaceModel):
 					self.vPri[j] = vP[i]
 
 					#filtering
-					K = vP[i]*t(h)*invM(h*vP[i]*t(h) + r)
-					x = xP[:,i] + K*(Yobs[:,j] - h*xP[:,i])
-					v = vP[i] - K*h*vP[i]
+					K = vP[i]*H.T*(H*vP[i]*H.T + R).I
+					x = xP[:,i] + K*(Yobs[:,j] - H*xP[:,i])
+					v = vP[i] - K*H*vP[i]
 					self.xPost = cbind(self.xPost,x)
 					self.vPost[j] = v
 					j = j+1
@@ -172,8 +175,8 @@ class Kalman(StateSpaceModel):
 					v = vP[i]
 					
 				#prediction
-				xP = cbind(xP,f*x)
-				vP[[i+1]] = f*v*t(f) + q
+				xP = cbind(xP,F*x)
+				vP[i+1] = F*v*F.T + Q
 			
 			self.x = xP
 			self.v = vP
