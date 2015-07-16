@@ -5,10 +5,24 @@ from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
 
 
-class Particle(SSM):
+class Particle:
+	def __init__(self):
+		self.position = 0
+
+	def set_position(self, pos):
+		self.position = pos
+
+
+class Particles:
 	def __init__(self, num_particles):
 		self.NUM = num_particles
+		self.particle = []
+		for i in range(num_particles): self.particle[i] = Particle
 		
+		
+
+
+class PF(Particles):
 	def set_data(self, data):
 		self.obs = data
 		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
