@@ -6,7 +6,14 @@ from timeseries import StateSpaceModel as SSM
 
 
 class Particle(SSM):
-	def __init__(self, p, k):
+	def __init__(self, num_particles):
+		self.NUM = num_particles
+		
+	def set_data(self, data):
+		self.obs = data
+		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
+		self.missing_data_flag = True if sum(np.sum(data)) else False
+
 		# constant for particle filter
 		self.ssm = SSM(p, k)
 		# variable for particle filter
@@ -25,11 +32,6 @@ class Particle(SSM):
 		self.vs0 = []
 		self.vs = []
 		self.vLag = []
-
-	def set_data(self, data):
-		self.obs = data
-		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
-		self.missing_data_flag = True if sum(np.sum(data)) else False
 
 
 	def calc_llh(self):
