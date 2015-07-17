@@ -6,9 +6,9 @@ from timeseries import StateSpaceModel as SSM
 
 
 class PF(Particles):
-	def __init__(self, num_particles=100, model=SSM):
+	def __init__(self, num_particles=100, model=SSM.obs):
 		self.num_particles = num_particles
-		self.model = SSM(p, k)
+		self.prediction_func = model
 	
 	def set_data(self, data):
 		self.obs = data
