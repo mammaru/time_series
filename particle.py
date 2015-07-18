@@ -5,9 +5,21 @@ from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
 
 
-class PF(Particles):
-	def __init__(self, num_particles=100, model=SSM.obs):
+class Particle:
+	def __init__(self, d, w=0):
+		self.dim = d
+		self.position = np.random.randn(dim)
+		self.weight = w
+
+	def move(self, model):
+		self.potition = model(self.position)
+		
+
+class PF:
+	def __init__(self, num_particles=100, dim=10, model=SSM.obs):
+		self.dim_particle = dim
 		self.num_particles = num_particles
+		self.particles = [Particle(dim, 1/num_particles) for i in range(num_particles)]
 		self.prediction_func = model
 	
 	def set_data(self, data):
@@ -17,34 +29,14 @@ class PF(Particles):
 		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
 		self.missing_data_flag = True if sum(np.sum(data)) else False
 
-		self.particles = DataFrame(np.random.randn(self.num_particles*self.obs_dim).reshape(num_particles, self.obs_dim))		
-
-		# variable for particle filter
-		self.x0mean = self.ssm.x0mean
-		self.x0var = self.ssm.x0var
-		self.F = self.ssm.F
-		self.H = self.ssm.H
-		self.Q = self.ssm.Q
-		self.R = self.ssm.R
-		self.xp = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
-		self.vp = []
-		self.xf = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
-		self.vf = []
-		self.xs0 = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
-		self.xs = DataFrame(np.empty([self.ssm.sys_dim, 0])).T
-		self.vs0 = []
-		self.vs = []
-		self.vLag = []
-
-
 	def calc_llh(self):
 		# compare prediction and observation
-		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2;/*確率密度関数の値×a2*/
-		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)/wgoukei;
+		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2; # value of probability density function * a2
+		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)
 		#w[k][j] = w[k-1][j]*gauss((z[k]-Spre[k][j]),mu2,var2)*gauss((Spre[k][j]-Spost[k-1][j]),mu2,var2); # pdf*a2
 
-		#t += w[k][j];/*重み合計*/
-		#_Neff += w[k][j]*w[k][j];/*リサンプリング判定のため*/
+		#t += w[k][j]; # sum of weights
+		#_Neff += w[k][j]*w[k][j]; # threashold for resample
 
 	def resample(self):
 
@@ -82,8 +74,8 @@ class PF(Particles):
             #Spost[k][j]=Spre[k][s];
 		#}
 
-	def filtering(self, num_particles):
-		PA = num_particles
+	def execute(self):
+		PA = self.num_particles
 
 		# Scattering initial distribution
 		double tmp_position
@@ -94,14 +86,15 @@ class PF(Particles):
 		}
 
 		# prediction and resampling		
-		for (k=1;k<kaisuu;k++){
-
+		for n in range(N):
+			
 			# prediction to move each particles next position
 			# decide prior distribution
-			for (j=0;j<PARTICLE_NUMBER;j++){
-				particle[k][j].nystagmus = bppvSim(k,particle[k-1][j].position);
-				//EyeAngularVelocity << output[0] << " " << output[1] << " " << output[2] << endl;
-			}
+			
+			#for (j=0;j<PARTICLE_NUMBER;j++){
+				#particle[k][j].nystagmus = bppvSim(k,particle[k-1][j].position);
+				#//EyeAngularVelocity << output[0] << " " << output[1] << " " << output[2] << endl;
+			#}
 
 			# calculate likelihood of each particle
 			for (j=0;j<PARTICLE_NUMBER;j++){
@@ -114,6 +107,6 @@ class PF(Particles):
 			for(j=0;j<PARTICLE_NUMBER;j++){
 				particle[k][j].position = resample(kesseki[k][j].likelihood);
 			}
-		}
+
 
 
