@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
 
 
+
 class Particle:
 	def __init__(self, d, w=0):
 		self.dim = d
@@ -16,7 +17,7 @@ class Particle:
 		self.potition = model(self.position)
 		
 class PF:
-	def __init__(self, num_particles=100, dim=10, model=SSM.obs):
+	def __init__(self, num_particles=100, dim=10, model=SSM.obs_eq):
 		self.dim_particle = dim
 		self.num_particles = num_particles
 		self.particles = [Particle(dim, 1/num_particles) for i in range(num_particles)]
@@ -33,8 +34,8 @@ class PF:
 		# compare prediction and observation
 		for i in range(self.num_particles):
 			position = self.particles[i].position
-			weights = norm.pdf(x=position, loc)
-		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2; # value of probability density function * a2
+			weights = norm.pdf(x=position) # probability density function of normal distribution
+		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2; # probability density function * a2
 		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)
 		#w[k][j] = w[k-1][j]*gauss((z[k]-Spre[k][j]),mu2,var2)*gauss((Spre[k][j]-Spost[k-1][j]),mu2,var2); # pdf*a2
 
@@ -43,50 +44,39 @@ class PF:
 
 	def resample(self):
 
-		if(Neff<NT):
+		if(Neff<NT): # Do resampling
 			c[0]=0; 
-			for(i=1; i<jmax; i++){
+			for i in range(jmax):
 				c[i] = c[i-1] + w[k][i];
-			}     
-			u[0] = ((double)random()/RAND_MAX)/(double)jmax;
-			printf("Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",(double)1/jmax,k,u[0]);
-			for(j=0; j<jmax; j++){
+		
+			#u[0] = ((double)random()/RAND_MAX)/(double)jmax;
+			u[0] = np.random.randn(1)
+			print "Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",1/jmax,k,u[0]
+			for j in range(jmax):
 				i = 0;
 				u[j] = u[0] + (double)(1.0/jmax)*j;
-				while(u[j]>c[i]): i++;
+				while u[j]>c[i]: i += 1
 				Spost[k][j] = Spre[k][i];
 				w[k][j] = 1.0/jmax;
-			}
 
-			if(k==9)for(j=0;j<jmax;j++): printf("%.20lf %.20lf\n",c[j],u[j]);
+			if k==9:
+				for j in range(jmax): print "%.20lf %.20lf\n",c[j],u[j]
 
 
-		else:
-			for(j=0; j<jmax; j++){
+		else: # Posteriors are set to prior 
+			for j in range(jmax):
 				Spost[k][j] = Spre[k][j];
-			}
 
-		# do resampling
-		#for(j=0;j<jmax;++j){
-			#ran=(double)random()/RAND_MAX;
-			#for(k=0;k<jmax;++k){
-				#if(ran<a[k+1] && a[k]<ran){
-					#s=k;
-				#}
-			#}
-            #Spost[k][j]=Spre[k][s];
-		#}
 
 	def execute(self):
 		PA = self.num_particles
 
 		# Scattering initial distribution
-		double tmp_position
-		for (j=0;j<PARTICLE_NUMBER;j++) {
+		#double tmp_position
+		for j in range(PARTICLE_NUMBER):
 			tmp_position[0] = (360/PARTICLE_NUMBER)*j*PI/180;
 			tmp_position[1] = (360/PARTICLE_NUMBER)*j*PI/180;
 			particle[0][j].position = tmp_position; # scattering
-		}
 
 		# prediction and resampling		
 		for n in range(N):
@@ -100,16 +90,17 @@ class PF:
 			#}
 
 			# calculate likelihood of each particle
-			for (j=0;j<PARTICLE_NUMBER;j++){
+			for j in range(PARTICLE_NUMBER):
 				particle[k][j].likelihood = calc_likelihood(particle[k][j].nystagmus);
-			}
 
 
 			# resampling using likelihood
 			# decide posterior distrobution
-			for(j=0;j<PARTICLE_NUMBER;j++){
+			for j in range(PARTICLE_NUMBER):
 				particle[k][j].position = resample(kesseki[k][j].likelihood);
-			}
 
 
 
+
+if __name__ == "__main__":
+	print "particle.py: directly called from main proccess."
