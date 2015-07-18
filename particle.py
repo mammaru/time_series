@@ -1,5 +1,6 @@
 import numpy as np
 #import pandas as pd
+from scipy.stats import norm
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
@@ -14,7 +15,6 @@ class Particle:
 	def move(self, model):
 		self.potition = model(self.position)
 		
-
 class PF:
 	def __init__(self, num_particles=100, dim=10, model=SSM.obs):
 		self.dim_particle = dim
@@ -26,11 +26,14 @@ class PF:
 		self.obs = data
 		self.obs_dim = data.shape[1]
 		self.N = data.shape[0]
-		self.unequal_intarval_flag = True if sum(np.sum(data)) else False
-		self.missing_data_flag = True if sum(np.sum(data)) else False
+		#self.unequal_intarval_flag = True if sum(np.sum(data)) else False
+		#self.missing_data_flag = True if sum(np.sum(data)) else False
 
-	def calc_llh(self):
+	def calc_llh(self, Y):
 		# compare prediction and observation
+		for i in range(self.num_particles):
+			position = self.particles[i].position
+			weights = norm.pdf(x=position, loc)
 		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2; # value of probability density function * a2
 		#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)
 		#w[k][j] = w[k-1][j]*gauss((z[k]-Spre[k][j]),mu2,var2)*gauss((Spre[k][j]-Spost[k-1][j]),mu2,var2); # pdf*a2
@@ -63,7 +66,7 @@ class PF:
 				Spost[k][j] = Spre[k][j];
 			}
 
-		# exec resampling
+		# do resampling
 		#for(j=0;j<jmax;++j){
 			#ran=(double)random()/RAND_MAX;
 			#for(k=0;k<jmax;++k){
