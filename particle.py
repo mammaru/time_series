@@ -1,5 +1,5 @@
 import numpy as np
-#import pandas as pd
+import pandas as pd
 from scipy.stats import norm
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
@@ -20,30 +20,25 @@ class Particle:
 		self.smt = DataFrame(np.empty([0, d]))
 
 	def move(self, model):
-		self.potition = model(self.position)
+		self.potition = np.array(model(np.matrix(self.position).T)).T
 
 class PF:
 	def __init__(self,
 				 data,
 				 num_particles=100,
 				 dim_particle=10,
-				 sys_eq=SSM.sys_eq,
-				 obs_eq=SSM.obs_eq
 				 ):
 		
 		self.dim_particle = dim_particle
 		self.num_particles = num_particles
 		#self.particles = [Particle(d=dim, w=1/num_particles) for i in range(num_particles)]
-		self.sys_eq = sys_eq
-		self.obs_eq = obs_eq
 
 		# constant for kalman
 		self.obs = data
 		self.obs_dim = data.shape[1]
 		self.N = data.shape[0]
-		#self.yp = DataFrame(np.empty([0, self.obs_dim]))
-		#self.yf = DataFrame(np.empty([0, self.obs_dim]))
-		#self.ys = DataFrame(np.empty([0, self.obs_dim]))
+
+		self.ssm = SSM(self.obs_dim, self.dim_particle)
 	
 	def set_data(self, data):
 		self.obs = data
@@ -96,8 +91,9 @@ class PF:
 				# Scattering particles for initial distribution
 				self.particles = [Particle(d=DP, w=1/NP) for i in range(NP)]
 			else:
+				# move each particles by system equation
 				for i in range(NP):
-					self.particles[i].move()
+					self.particles[i].move(self.ssm.sys_eq)
 
 			# store prediction distribution
 			for i in range(NP):
@@ -105,8 +101,8 @@ class PF:
 				x_prediction.index = [n]
 				pd.concat([self.particles[i].x_prdc, x_prediction], axis=0)
 
-			# calculate likelihood of each particle
-			self.__calc_llh()
+			# calculate weight of each particle
+			self.__calc_weight()
 
 			# resample to avoid degeneracy problem
 			# decide posterior distrobution
@@ -114,10 +110,9 @@ class PF:
 			    self.__resample()
 			#else: # Posteriors are set to prior 
 				#for j in range(NP):
-					#Spost[k][j] = Spre[k][j];
 					#self.particles[j].position = self.particles[j].position
 
-			# store prediction distribution
+			# store filtering distribution
 			for i in range(NP):
 				x_filtering = self.particles[i].position
 				x_filtering.index = [n]

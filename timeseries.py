@@ -41,10 +41,14 @@ class StateSpaceModel:
 		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
 		self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
 	
-	def sys_eq(self, x, F, Q):
+	def sys_eq(self, x, **kwds):
+		F = kwds.pop("F", None) if "F" in kwds else self.F
+		Q = kwds.pop("Q", None) if "Q" in kwds else self.Q
 		return np.asarray(F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(Q))).T)
 	
-	def obs_eq(self, x, H, R):
+	def obs_eq(self, x, **kwds):
+		H = kwds.pop("H", None) if "H" in kwds else self.H
+		R = kwds.pop("R", None) if "R" in kwds else self.R
 		return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
 	
 	def gen_data(self, N):
