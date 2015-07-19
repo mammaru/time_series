@@ -140,7 +140,20 @@ if __name__ == "__main__":
 	print "particle.py: directly called from main proccess."
 
 	ssm = SSM(5,5)
-	data = ssm.gen_data(20)
+	N = 20
+	data = ssm.gen_data(N)
 
-	p = PF(data[0])
+	NP = 50
+	DP = 5
+	p = PF(data[1], num_particles=NP, dim_particle=DP)
 	p.execute()
+
+	tmp = []
+	for i in range(NP):
+		tmp_inner = []
+		for j in range(N):
+			tmp_inner.append(np.mean(p.particles[i].flt.ix[j]))
+		tmp.append(tmp_inner)
+	tmp = np.array(tmp)
+	estimated_sys = DataFrame(np.mean(tmp, axis=0))
+	#estimated_sys = [estimated_sys[]]
