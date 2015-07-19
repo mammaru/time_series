@@ -78,30 +78,26 @@ class PF:
 			self.particles[j].position = self.particles[i].position
 			#w[k][j] = 1.0/NP
 			self.particles[j].weight = 1.0/NP
-		#if k==9:
-			#for j in range(NP): print c[j], u[j]
-
 
 	def execute(self):
 		DP = self.dim_particle
 		NP = self.num_particles
 		N = self.N
 		
-		# Scattering particles for initial distribution
-		self.particles = [Particle(d=DP, w=1/NP) for i in range(NP)]
-
 		# prediction and resampling		
 		for n in range(N):
 			
 			# prediction to move each particles next position
 			# decide prior distribution
-			for i in range(NP): self.particles[i].prediction = self.obs_eq(self.particles[i].position)
-			#for (j=0;j<PARTICLE_NUMBER;j++){
-				#particle[k][j].nystagmus = bppvSim(k,particle[k-1][j].position);
-				#//EyeAngularVelocity << output[0] << " " << output[1] << " " << output[2] << endl;
-			#}
+			if n==0:
+				# Scattering particles for initial distribution
+				self.particles = [Particle(d=DP, w=1/NP) for i in range(NP)]
+			else:
+				for i in range(NP):
+					self.particles[i].move()
 
-			self.yp = np.vstack(self.yp, self.)
+			# store prediction distribution
+			self.xp = np.vstack(self.yp, self.particles)
 
 			# calculate likelihood of each particle
 			self.__calc_llh()
@@ -109,12 +105,13 @@ class PF:
 			# resample to avoid degeneracy problem
 			# decide posterior distrobution
 			if Neff < NT: # do resampling
-				particle[k][j].position = self.__resample()
+			    self.__resample()
 			#else: # Posteriors are set to prior 
 				#for j in range(NP):
 					#Spost[k][j] = Spre[k][j];
 					#self.particles[j].position = self.particles[j].position
 
+			self.xf = np.vstack(self.xf, self.particles)
 
 
 if __name__ == "__main__":
