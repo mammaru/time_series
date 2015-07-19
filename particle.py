@@ -54,7 +54,8 @@ class PF:
 	def __resample(self):
 		NP = self.num_particles
 		if(Neff<NT): # Do resampling
-			c = [0 for i in range(NP)]; 
+			c = [0 for i in range(NP)]
+			u = [0 for i in range(NP)]
 			for i in range(jmax):
 				c[i] = c[i-1] + self.particles[i].weight
 			#u[0] = ((double)random()/RAND_MAX)/(double)jmax;
