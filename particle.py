@@ -15,7 +15,6 @@ class Particle:
 			print "Dimention of particle must be specified as augument \"d\"."
 		self.position = np.random.randn(d)
 		self.weight = w
-		self.prediction = 0
 
 	def move(self, model):
 		self.potition = model(self.position)
@@ -39,9 +38,9 @@ class PF:
 		self.obs = data
 		self.obs_dim = data.shape[1]
 		self.N = data.shape[0]
-		self.yp = DataFrame(np.empty([self.obs_dim, 0])).T
-		self.yf = DataFrame(np.empty([self.obs_dim, 0])).T
-		self.ys = DataFrame(np.empty([self.obs_dim, 0])).T
+		self.yp = DataFrame(np.empty([0, self.obs_dim]))
+		self.yf = DataFrame(np.empty([0, self.obs_dim]))
+		self.ys = DataFrame(np.empty([0, self.obs_dim]))
 	
 	def set_data(self, data):
 		self.obs = data
@@ -50,7 +49,7 @@ class PF:
 		#self.unequal_intarval_flag = True if sum(np.sum(data)) else False
 		#self.missing_data_flag = True if sum(np.sum(data)) else False
 
-	def __calc_llh(self):
+	def __calc_weight(self):
 		Yobs = np.matrix(self.obs.T)
 		# compare prediction and observation
 		for i in range(self.num_particles):
@@ -64,25 +63,23 @@ class PF:
 
 	def __resample(self):
 		NP = self.num_particles
-		if(Neff<NT): # Do resampling
-			c = [0 for i in range(NP)]
-			u = [0 for i in range(NP)]
-			for i in range(NP):
-				c[i] = c[i-1] + self.particles[i].weight
-			#u[0] = ((double)random()/RAND_MAX)/(double)jmax;
-			u[0] = np.random.randn(1)/NP
-			print "Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",1/NP,k,u[0]
-			for j in range(NP):
-				i = 0;
-				u[j] = u[0] + (double)(1.0/NP)*j;
-				while u[j]>c[i]: i += 1
-				Spost[k][j] = Spre[k][i];
-				w[k][j] = 1.0/NP;
-			if k==9:
-				for j in range(NP): print c[j], u[j]
-		else: # Posteriors are set to prior 
-			for j in range(NP):
-				Spost[k][j] = Spre[k][j];
+		c = [0 for i in range(NP)]
+		u = [0 for i in range(NP)]
+		for i in range(NP):
+			c[i+1] = c[i] + self.particles[i+1].weight
+		#u[0] = ((double)random()/RAND_MAX)/(double)jmax;
+		u[0] = np.random.randn(1)/NP
+		print "Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",1/NP,k,u[0]
+		for j in range(NP):
+			i = 0
+			u[j] = u[0] + (1.0/NP)*j
+			while u[j]>c[i]: i += 1
+			#Spost[k][j] = Spre[k][i]
+			self.particles[j].position = self.particles[i].position
+			#w[k][j] = 1.0/NP
+			self.particles[j].weight = 1.0/NP
+		#if k==9:
+			#for j in range(NP): print c[j], u[j]
 
 
 	def execute(self):
@@ -104,15 +101,19 @@ class PF:
 				#//EyeAngularVelocity << output[0] << " " << output[1] << " " << output[2] << endl;
 			#}
 
+			self.yp = np.vstack(self.yp, self.)
+
 			# calculate likelihood of each particle
-			for j in range(NP):
-				particle[k][j].likelihood = self.__calc_llh(particle[k][j].nystagmus);
+			self.__calc_llh()
 
 			# resample to avoid degeneracy problem
 			# decide posterior distrobution
-			for j in range(NP):
-				particle[k][j].position = self.__resample(kesseki[k][j].likelihood);
-
+			if Neff < NT: # do resampling
+				particle[k][j].position = self.__resample()
+			#else: # Posteriors are set to prior 
+				#for j in range(NP):
+					#Spost[k][j] = Spre[k][j];
+					#self.particles[j].position = self.particles[j].position
 
 
 
