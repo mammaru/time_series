@@ -15,12 +15,14 @@ class Particle:
 			print "Dimention of particle must be specified as augument \"d\"."
 		self.position = np.random.randn(d)
 		self.weight = w
+		self.prediction = 0
 
 	def move(self, model):
 		self.potition = model(self.position)
 
 class PF:
 	def __init__(self,
+				 data,
 				 num_particles=100,
 				 dim_particle=10,
 				 sys_eq=SSM.sys_eq,
@@ -32,6 +34,14 @@ class PF:
 		#self.particles = [Particle(d=dim, w=1/num_particles) for i in range(num_particles)]
 		self.sys_eq = sys_eq
 		self.obs_eq = obs_eq
+
+		# constant for kalman
+		self.obs = data
+		self.obs_dim = data.shape[1]
+		self.N = data.shape[0]
+		self.yp = DataFrame(np.empty([self.obs_dim, 0])).T
+		self.yf = DataFrame(np.empty([self.obs_dim, 0])).T
+		self.ys = DataFrame(np.empty([self.obs_dim, 0])).T
 	
 	def set_data(self, data):
 		self.obs = data
@@ -40,11 +50,12 @@ class PF:
 		#self.unequal_intarval_flag = True if sum(np.sum(data)) else False
 		#self.missing_data_flag = True if sum(np.sum(data)) else False
 
-	def __calc_llh(self, Y):
+	def __calc_llh(self):
+		Yobs = np.matrix(self.obs.T)
 		# compare prediction and observation
 		for i in range(self.num_particles):
 			position = self.particles[i].position
-			weights = norm.pdf(x=position, loc=self.obs) # probability density function of normal distribution
+			weights = norm.pdf(x=position, loc=Yobs) # probability density function of normal distribution
 			#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)*a2; # pdf * a2
 			#w[k][j] = gauss((z[k]-Spre[k][j]),mu2,var2)
 			#w[k][j] = w[k-1][j]*gauss((z[k]-Spre[k][j]),mu2,var2)*gauss((Spre[k][j]-Spost[k-1][j]),mu2,var2); # pdf * a2
@@ -56,21 +67,21 @@ class PF:
 		if(Neff<NT): # Do resampling
 			c = [0 for i in range(NP)]
 			u = [0 for i in range(NP)]
-			for i in range(jmax):
+			for i in range(NP):
 				c[i] = c[i-1] + self.particles[i].weight
 			#u[0] = ((double)random()/RAND_MAX)/(double)jmax;
 			u[0] = np.random.randn(1)/NP
-			print "Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",1/jmax,k,u[0]
-			for j in range(jmax):
+			print "Resampling!\n1/jmax=%lf,u[%d][0]=%lf\n",1/NP,k,u[0]
+			for j in range(NP):
 				i = 0;
-				u[j] = u[0] + (double)(1.0/jmax)*j;
+				u[j] = u[0] + (double)(1.0/NP)*j;
 				while u[j]>c[i]: i += 1
 				Spost[k][j] = Spre[k][i];
-				w[k][j] = 1.0/jmax;
+				w[k][j] = 1.0/NP;
 			if k==9:
-				for j in range(jmax): print "%.20lf %.20lf\n",c[j],u[j]
+				for j in range(NP): print c[j], u[j]
 		else: # Posteriors are set to prior 
-			for j in range(jmax):
+			for j in range(NP):
 				Spost[k][j] = Spre[k][j];
 
 
@@ -87,7 +98,7 @@ class PF:
 			
 			# prediction to move each particles next position
 			# decide prior distribution
-			
+			for i in range(NP): self.particles[i].prediction = self.obs_eq(self.particles[i].position)
 			#for (j=0;j<PARTICLE_NUMBER;j++){
 				#particle[k][j].nystagmus = bppvSim(k,particle[k-1][j].position);
 				#//EyeAngularVelocity << output[0] << " " << output[1] << " " << output[2] << endl;
@@ -96,7 +107,6 @@ class PF:
 			# calculate likelihood of each particle
 			for j in range(NP):
 				particle[k][j].likelihood = self.__calc_llh(particle[k][j].nystagmus);
-
 
 			# resample to avoid degeneracy problem
 			# decide posterior distrobution
