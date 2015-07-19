@@ -57,8 +57,8 @@ class StateSpaceModel:
 		i = 0
 		while(i < N):
 			sysi = np.matrix(sys_value)[:,i]
-			sys_value = np.hstack((sys_value, self.sys_eq(sysi, self.F, self.Q)))
-			obs_value = np.hstack((obs_value, self.obs_eq(sysi, self.H, self.R)))
+			sys_value = np.hstack((sys_value, self.sys_eq(sysi)))
+			obs_value = np.hstack((obs_value, self.obs_eq(sysi)))
 			i += 1
 		sys_value = DataFrame(sys_value.T)
 		obs_value = DataFrame(obs_value.T)
