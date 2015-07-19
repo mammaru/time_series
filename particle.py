@@ -15,6 +15,9 @@ class Particle:
 			print "Dimention of particle must be specified as augument \"d\"."
 		self.position = np.random.randn(d)
 		self.weight = w
+		self.prd = DataFrame(np.empty([0, d]))
+		self.flt = DataFrame(np.empty([0, d]))
+		self.smt = DataFrame(np.empty([0, d]))
 
 	def move(self, model):
 		self.potition = model(self.position)
@@ -38,9 +41,9 @@ class PF:
 		self.obs = data
 		self.obs_dim = data.shape[1]
 		self.N = data.shape[0]
-		self.yp = DataFrame(np.empty([0, self.obs_dim]))
-		self.yf = DataFrame(np.empty([0, self.obs_dim]))
-		self.ys = DataFrame(np.empty([0, self.obs_dim]))
+		#self.yp = DataFrame(np.empty([0, self.obs_dim]))
+		#self.yf = DataFrame(np.empty([0, self.obs_dim]))
+		#self.ys = DataFrame(np.empty([0, self.obs_dim]))
 	
 	def set_data(self, data):
 		self.obs = data
@@ -97,7 +100,10 @@ class PF:
 					self.particles[i].move()
 
 			# store prediction distribution
-			self.xp = np.vstack(self.yp, self.particles)
+			for i in range(NP):
+				x_prediction = self.particles[i].position
+				x_prediction.index = [n]
+				pd.concat([self.particles[i].x_prdc, x_prediction], axis=0)
 
 			# calculate likelihood of each particle
 			self.__calc_llh()
@@ -111,7 +117,11 @@ class PF:
 					#Spost[k][j] = Spre[k][j];
 					#self.particles[j].position = self.particles[j].position
 
-			self.xf = np.vstack(self.xf, self.particles)
+			# store prediction distribution
+			for i in range(NP):
+				x_filtering = self.particles[i].position
+				x_filtering.index = [n]
+				pd.concat([self.particles[i].x_fltr, x_prediction], axis=0)
 
 
 if __name__ == "__main__":
