@@ -5,6 +5,7 @@ from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
 
+Nthr = 1e-1
 
 class Particle:
 	def __init__(self, d, w=0):
@@ -18,11 +19,11 @@ class Particle:
 		self.flt = DataFrame(np.empty([0, d]))
 		self.smt = DataFrame(np.empty([0, d]))
 
-	def move(self, model):
-		self.potition = np.array(model(np.matrix(self.position).T)).T
+	def move(self, model): # model = some equation such like system equation.
+		self.position = np.array(model(np.matrix(self.position).T)).T
 
 class PF:
-	Nthr = 0.1
+
 
 	def __init__(self,
 				 data,
@@ -71,9 +72,7 @@ class PF:
 			#t += w[k][j]; # sum of weights
 			#_Neff += w[k][j]*w[k][j]; # threashold for resample
 
-		for i in range(NP):
-			self.particles[i].weight /= sum_w
-
+		for i in range(NP): self.particles[i].weight /= sum_w
 		self.Neff = np.sum([(self.particles[i].weight)**2 for i in range(NP)])
 
 	def __resample(self):
@@ -132,14 +131,14 @@ class PF:
 			for i in range(NP):
 				x_filtering = DataFrame(self.particles[i].position).T
 				x_filtering.index = [n]
-				self.particles[i].flt = pd.concat([self.particles[i].flt, x_prediction], axis=0)
+				self.particles[i].flt = pd.concat([self.particles[i].flt, x_filtering], axis=0)
 
 
 if __name__ == "__main__":
-	print "particle.py: directly called from main proccess."
+	print "particle.py: called in main proccess."
 
 	ssm = SSM(1,1)
-	N = 100
+	N = 10
 	data = ssm.gen_data(N)
 
 	NP = 100

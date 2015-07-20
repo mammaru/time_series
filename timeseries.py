@@ -1,9 +1,5 @@
 import numpy as np
-from numpy.random import *
-#from numpy import nan as NaN
-#import pandas as pd
-from pandas import DataFrame, Series
-#from matplotlib import pyplot as plt
+from pandas import DataFrame
 
 class VectorAutoRegressiveModel:
 	def __init__(self, p):
@@ -36,7 +32,7 @@ class StateSpaceModel:
 		self.x0var = np.matrix(np.eye(k)) # fixed
 		self.F = np.matrix(np.random.randn(k,k)) # system transition matrix
 		#self.F = np.matrix(DataFrame(self.F).applymap(lambda x: 0 if np.abs(x)>0.5 else x))
-		self.F[abs(self.F)<1] = 0
+		self.F[abs(self.F)<1] = 0 # make matrix sparse
 		self.Q = np.matrix(np.eye(k)) # system noise variance
 		self.H = np.matrix(np.eye(p,k)) # observation transition matrix
 		self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
