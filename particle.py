@@ -22,7 +22,7 @@ class Particle:
 		self.potition = np.array(model(np.matrix(self.position).T)).T
 
 class PF:
-	Nthr = 1
+	Nthr = 0.1
 
 	def __init__(self,
 				 data,
@@ -64,14 +64,17 @@ class PF:
 			#print distance
 			 # probability density function of normal distribution
 			self.particles[i].weight = norm.pdf(x=distance)
-
+			#self.particles[i].weight = 1.0/NP
+			
 			sum_w += self.particles[i].weight
-			self.Neff += self.particles[i].weight**2
+			#self.Neff += (self.particles[i].weight)**2
 			#t += w[k][j]; # sum of weights
 			#_Neff += w[k][j]*w[k][j]; # threashold for resample
 
 		for i in range(NP):
 			self.particles[i].weight /= sum_w
+
+		self.Neff = np.sum([(self.particles[i].weight)**2 for i in range(NP)])
 
 	def __resample(self):
 		NP = self.num_particles
@@ -85,12 +88,11 @@ class PF:
 		for j in range(NP):
 			i = 0
 			u[j] = u[0] + (1.0/NP)*j
-			while u[j]>c[i]:
+			while u[j]>c[i] and j > i:
 				#print i, j
 				i += 1
-			#Spost[k][j] = Spre[k][i]
+
 			self.particles[j].position = self.particles[i].position
-			#w[k][j] = 1.0/NP
 			self.particles[j].weight = 1.0/NP
 
 	def execute(self):
@@ -125,9 +127,6 @@ class PF:
 			print self.Neff
 			if self.Neff < Nthr: # do resampling
 			    self.__resample()
-			#else: # Posteriors are set to prior 
-				#for j in range(NP):
-					#self.particles[j].position = self.particles[j].position
 
 			# store filtering distribution
 			for i in range(NP):
@@ -139,12 +138,12 @@ class PF:
 if __name__ == "__main__":
 	print "particle.py: directly called from main proccess."
 
-	ssm = SSM(5,5)
+	ssm = SSM(1,1)
 	N = 20
 	data = ssm.gen_data(N)
 
-	NP = 50
-	DP = 5
+	NP = 100
+	DP = 1
 	p = PF(data[1], num_particles=NP, dim_particle=DP)
 	p.execute()
 
@@ -156,4 +155,4 @@ if __name__ == "__main__":
 		tmp.append(tmp_inner)
 	tmp = np.array(tmp)
 	estimated_sys = DataFrame(np.mean(tmp, axis=0))
-	#estimated_sys = [estimated_sys[]]
+
