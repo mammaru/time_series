@@ -5,3 +5,4 @@ Helper classes and methods to analyse multivariate time series data.
 * State space model(Dynamic statistical model)
   * Kalman algorithm(prediction, filtering and smoothing)
   * EM algorithm to estimate parameters
+  * Particle Filter

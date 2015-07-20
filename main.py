@@ -25,7 +25,7 @@ def draw_heatmap(data, **labels):
 
 
 if __name__ == "__main__":
-	if 0:
+	if 1:
 		filename = "./ignr/data/exchange.dat"
 		#data = np.loadtxt(filename, delimiter="\t")
 		df = pd.read_table(filename, index_col="datetime")
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 		volume = daily.ix[:, daily.columns.map(lambda x: x.endswith("VOLUME"))]
 
 	# SVAR
-	if 0:
+	if 1:
 		data = price
 		svar = SparseVAR()
 		svar.set_data(data)
@@ -44,9 +44,9 @@ if __name__ == "__main__":
 		
 		B = svar.GCV()
 		B = DataFrame(B.T, index=data.columns, columns=data.columns)
-	if 0:
-		draw_heatmap(np.array(B))
 	if 1:
+		draw_heatmap(np.array(B))
+	if 0:
 		DG = nx.DiGraph()
 		idxs = data.columns
 		for idx_from in idxs:

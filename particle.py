@@ -139,7 +139,7 @@ if __name__ == "__main__":
 	print "particle.py: directly called from main proccess."
 
 	ssm = SSM(1,1)
-	N = 20
+	N = 100
 	data = ssm.gen_data(N)
 
 	NP = 100
