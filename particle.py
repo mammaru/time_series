@@ -136,13 +136,13 @@ class PF:
 
 if __name__ == "__main__":
 	print "particle.py: called in main proccess."
-
-	ssm = SSM(1,1)
-	N = 10
+	NP = 5
+	DP = 1
+	N = 50
+	
+	ssm = SSM(10,DP)
 	data = ssm.gen_data(N)
 
-	NP = 100
-	DP = 1
 	p = PF(data[1], num_particles=NP, dim_particle=DP)
 	p.execute()
 
@@ -155,3 +155,7 @@ if __name__ == "__main__":
 	tmp = np.array(tmp)
 	estimated_sys = DataFrame(np.mean(tmp, axis=0))
 
+	if 1:
+		plt.plot(estimated_sys)
+		plt.plot(data[0])
+		plt.show()
