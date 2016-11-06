@@ -1,6 +1,6 @@
 
-# Abstract class Model
-class Model:
+# Abstract class Filter
+class Filter:
     def __init__(this):
         pass
         

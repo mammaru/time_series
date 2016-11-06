@@ -1,11 +1,41 @@
 #coding: utf-8
-"""
-Kalman's algorithm(prediction, filtering, smoothing)
+import numpy as np
+#import pandas as pd
+from pandas import DataFrame, Series
+from matplotlib import pyplot as plt
+from timeseries import StateSpaceModel as SSM
 
-Author: mammaru <mauma1989@gmail.com>
+class EM:
+    def __init__(self, model, data):
+        self.__em_threshold = 1e-3
+        self.__em_iterate_cout_max = 5000
 
-"""
+        # model instance for em
+        self.model = model
+        self.data = data
+        self.N = data.shape[0]
 
+    def __Estep(self):
+        """ Private method: Expectation step of EM algorithm for specified model """
+        self.model.Estep()
+
+    def __Mstep(self):
+        """ Private method: Maximization step of EM algorithm for specified model """
+        self.model.Mstep()
+
+    def execute(self):
+        """ Execute EM algorithm """
+        count = 0
+        diff = 100
+        while diff>self.__em_threshold and count<self.__em_iterate_count_max:
+            print count,
+            self.__Estep()
+            self.__Mstep()
+            if count>0: diff = abs(self.llh[count] - self.llh[count-1])
+            print "\tllh:", self.llh[count]
+            count += 1
+        #print "#"
+        #return 1
 
 
 

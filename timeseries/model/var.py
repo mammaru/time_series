@@ -29,6 +29,7 @@ class VectorAutoRegressiveModel:
             y = np.matrix(np.hstack((np.array(y), np.array(self.A*y[:,i]+e))))
         return DataFrame(y.T)
 
+
 class ConstraintVAR(VectorAutoRegressiveModel):
     def __init__(self):
         self.dim = 0 # dimention of vector
@@ -36,7 +37,7 @@ class ConstraintVAR(VectorAutoRegressiveModel):
         self.lmd = 0
 
     def set_data(self, data):
-        self.data = data # input data is DataFrame
+        self.data = data # input data is a DataFrame
         self.N = data.shape[0] # number of time points
         self.dim = data.shape[1]
 
