@@ -5,11 +5,11 @@ from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from timeseries import StateSpaceModel as SSM
 
+EM_THRESHOLD = 1e-3
+EM_ITERATION_MAXIMUM_COUNT = 5000
+
 class EM:
     def __init__(self, model, data):
-        self.__em_threshold = 1e-3
-        self.__em_iterate_cout_max = 5000
-
         # model instance for em
         self.model = model
         self.data = data
@@ -17,17 +17,20 @@ class EM:
 
     def __Estep(self):
         """ Private method: Expectation step of EM algorithm for specified model """
-        self.model.Estep()
+        self.model.expectation()
 
     def __Mstep(self):
         """ Private method: Maximization step of EM algorithm for specified model """
-        self.model.Mstep()
+        self.model.maximization()
+
+    def __calc_likelihood(self):
+        self.model.
 
     def execute(self):
         """ Execute EM algorithm """
         count = 0
         diff = 100
-        while diff>self.__em_threshold and count<self.__em_iterate_count_max:
+        while diff>EM_THRESHOLD and count<EM_ITERATION_MAXIMUM_COUNT:
             print count,
             self.__Estep()
             self.__Mstep()
