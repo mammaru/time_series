@@ -9,17 +9,17 @@ import numpy as np
 #import pandas as pd
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-#from timeseries import StateSpaceModel as SSM
+from .base import SSMBase
 
-class Kalman:
-    """ Mix-in: Kalman class for state space model """
-    def __prediction(self, values):
+
+class StateSpaceModel(SSMBase):
+    def _predict(self, values):
         return {
             "xp": self.F*values["xf"],
             "vp": self.F*values["vf"]*self.F.T+self.Q
             }
 
-    def __filtering(self, values):
+    def _filter(self, values):
         K = values["vp"]*self.H.T*(self.H*values["vp"]*self.H.T+self.R).I
         return {
             "xf": values["xp"]+K*(Yobs[:,i]-self.H*values["xp"]),
@@ -27,7 +27,7 @@ class Kalman:
             "K": K
             }
 
-    def __smoothing(self, values):
+    def _smooth(self, values):
         J = values["vf-1"]*self.F.T*values["vp"].I
         return {
             "xs": values["xf-1"]+J*(values["xs"]-values["xp"]),
@@ -36,19 +36,19 @@ class Kalman:
             }
 
     def __pfs(self, data):
-        """ body of the kalman's method called prediction, filtering and smoothing """
+        """ body of the kalman's method - prediction, filtering and smoothing """
         N = data.shape[0] # number of time points
         Yobs = np.matrix(data.T)
         xp = np.matrix(self.F*self.x0mean)
         vp.append(self.F*self.x0var*self.F.T+self.Q)
         for i in range(N):
             # filtering
-            values = self.__filtering({"xp": xp, "vp": vp})
+            values = self._filter({"xp": xp, "vp": vp})
             xf = xp[:,i]+K*(Yobs[:,i]-self.H*xp[:,i]) if i == 0 else np.hstack([xf, values["xf"]])
             vf.append(values["vf"])
             K = values["K"]
             # prediction
-            values = self.__prediction(values)
+            values = self._predict(values)
             xp = np.hstack([xp, values["xp"]])
             vp.append(values["vp"])
 
@@ -58,7 +58,7 @@ class Kalman:
         vs.insert(0, vf[N-1])
         vLag.insert(0, self.F*vf[N-2]-K*self.H*vf[N-2])
         for i in reversed(range(N)[1:]):
-            values = self.__smoothing({"xp": xp[:,i], "xf-1": xf[:,i-1], "xs": xs[:,0], "vp": vp[i], "vf-1": vf[i-1], "vf-2": vf[i-2], "vs": vs[0]})
+            values = self._smooth({"xp": xp[:,i], "xf-1": xf[:,i-1], "xs": xs[:,0], "vp": vp[i], "vf-1": vf[i-1], "vf-2": vf[i-2], "vs": vs[0]})
             J.insert(0, values["J"])
             xs = np.hstack([values["xs"], xs])
             vs.insert(0, values["vs"])
@@ -128,7 +128,7 @@ class Kalman:
         
 
 
-class EM:
+class EM__:
     def __init__(self, data, *sys_dim):
         # kalman instance for em
         self.data = data

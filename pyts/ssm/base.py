@@ -8,8 +8,9 @@ Author: mammaru <mauma1989@gmail.com>
 import numpy as np
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from core import Model
-from kalman import Kalman
+from ..base import EM
+from ..util.matrix import *
+
 
 def gen_data(self, model, N):
     sys_value = np.random.randn(model.sys_dim,1)
@@ -29,13 +30,17 @@ class TimeSeriesModel:
     def __init__(self, **args):
         initialize(args)
 
+    def __str__(self):
+        return ''
+
     def initialize(**args):
         raise ValueError("Model initialization failed.")
 
 
-class StateSpaceModel(TimeSeriesModel, Kalman):
-    def initialize(self, p, k, _filter):
-        self.filter = _filter
+class SSMBase(TimeSeriesModel, EM):
+    SSM_METHODS = {}
+
+    def initialize(p, k):
         self.obs_dim = p
         self.sys_dim = k
         self.x0mean = np.matrix(np.random.randn(k, 1))
@@ -47,19 +52,19 @@ class StateSpaceModel(TimeSeriesModel, Kalman):
         self.H = np.matrix(np.eye(p,k)) # observation transition matrix
         self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
 
-    def system_equation(self, x, **kwds):
-        F = kwds.pop("F", None) if "F" in kwds else self.F
-        Q = kwds.pop("Q", None) if "Q" in kwds else self.Q
-        return np.asarray(F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(Q))).T)
-    
-    def observation_equation(self, x, **kwds):
-        H = kwds.pop("H", None) if "H" in kwds else self.H
-        R = kwds.pop("R", None) if "R" in kwds else self.R
-        return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
+    @classmethod
+    def params():
+        pass
 
-    def expectation(self):
-        self.filter.execute()
+#    def system_equation(self, x, **kwds):
+#        F = kwds.pop("F", None) if "F" in kwds else self.F
+#        Q = kwds.pop("Q", None) if "Q" in kwds else self.Q
+#        return np.asarray(F * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.sys_dim]).tolist()[0], np.asarray(Q))).T)
 
-    def maximization(self):
-        self.filter.maximization()
+#    def observation_equation(self, x, **kwds):
+#        H = kwds.pop("H", None) if "H" in kwds else self.H
+#        R = kwds.pop("R", None) if "R" in kwds else self.R
+#        return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
 
+    def __set_method(self, _method):
+        pass

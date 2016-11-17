@@ -44,3 +44,29 @@ def digraph(data):
     plt.xticks([])
     plt.yticks([])
     plt.show()
+
+def test(data):
+    fig, axes = plt.subplots(np.int(np.ceil(sys_k/3.0)), 3, sharex=True)
+    j = 0
+    for i in range(3):
+        while j<sys_k:
+            if sys_k<=3:
+                axes[j%3].plot(data[0][j], "k--", label="obs")
+                axes[j%3].plot(em.kl.xp[j], label="prd")
+                axes[j%3].legend(loc="best")
+                axes[j%3].set_title(j)
+            else:
+                axes[i, j%3].plot(data[0][j], "k--", label="obs")
+                axes[i, j%3].plot(em.kl.xp[j], label="prd")
+                axes[i, j%3].legend(loc="best")
+                axes[i, j%3].set_title(j)
+            j += 1
+            if j%3 == 2: break
+
+        fig.show()
+
+        #loss = data[0]-em.kl.xs
+        #plt.plot(loss)
+        #plt.plot(em.llh)
+        #plt.show()
+

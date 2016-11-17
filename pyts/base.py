@@ -3,30 +3,32 @@ import numpy as np
 #import pandas as pd
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from timeseries import StateSpaceModel as SSM
 
 EM_THRESHOLD = 1e-3
 EM_ITERATION_MAXIMUM_COUNT = 5000
 
 class EM:
-    def __init__(self, model, data):
+    #def __init__(self, model, data):
         # model instance for em
-        self.model = model
-        self.data = data
-        self.N = data.shape[0]
+        #self.model = model
+        #self.data = data
+        #self.N = data.shape[0]
 
     def __Estep(self):
         """ Private method: Expectation step of EM algorithm for specified model """
-        self.model.expectation()
+        self.expectation_delegate(self)
 
     def __Mstep(self):
         """ Private method: Maximization step of EM algorithm for specified model """
-        self.model.maximization()
+        self.maximization_delegate(self)
 
-    def __calc_likelihood(self):
-        self.model.
+    def expectation_delegate(self):
+        assert 0, "Not implemented expectation_delegate method in child class"
 
-    def execute(self):
+    def maximization_delegate(self):
+        assert 0, "Not implemented maximization_delegate method in child class"
+
+    def em_execute(self):
         """ Execute EM algorithm """
         count = 0
         diff = 100
