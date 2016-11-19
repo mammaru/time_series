@@ -9,10 +9,11 @@ import numpy as np
 #import pandas as pd
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from .base import SSMBase
+from .base import BaseSSM
+from ..base import EMmixin
 
 
-class StateSpaceModel(SSMBase):
+class StateSpaceModel(BaseSSM, EMmixin):
     def _predict(self, values):
         return {
             "xp": self.F*values["xf"],
@@ -20,9 +21,10 @@ class StateSpaceModel(SSMBase):
             }
 
     def _filter(self, values):
+        #print values["vp"]
         K = values["vp"]*self.H.T*(self.H*values["vp"]*self.H.T+self.R).I
         return {
-            "xf": values["xp"]+K*(Yobs[:,i]-self.H*values["xp"]),
+            "xf": values["xp"]+K*(values["obs"]-self.H*values["xp"]),
             "vf": values["vp"]-K*self.H*values["vp"],
             "K": K
             }
@@ -37,19 +39,25 @@ class StateSpaceModel(SSMBase):
 
     def __pfs(self, data):
         """ body of the kalman's method - prediction, filtering and smoothing """
+        print "pfs"
+        vp = []
+        vf = []
+        vs = []
         N = data.shape[0] # number of time points
+        print N
         Yobs = np.matrix(data.T)
         xp = np.matrix(self.F*self.x0mean)
         vp.append(self.F*self.x0var*self.F.T+self.Q)
         for i in range(N):
+            print i
             # filtering
-            values = self._filter({"xp": xp, "vp": vp})
-            xf = xp[:,i]+K*(Yobs[:,i]-self.H*xp[:,i]) if i == 0 else np.hstack([xf, values["xf"]])
-            vf.append(values["vf"])
+            values = self._filter({"xp": xp, "vp": vp[i], "obs": Yobs[:,i]})
             K = values["K"]
+            xf = xp[:,i]+K*(Yobs[:,i]-self.H*xp[:,i]) if i == 0 else np.hstack((xf, values["xf"]))
+            vf.append(values["vf"])
             # prediction
             values = self._predict(values)
-            xp = np.hstack([xp, values["xp"]])
+            xp = np.hstack((xp, values["xp"]))
             vp.append(values["vp"])
 
         # smoothing
@@ -58,12 +66,14 @@ class StateSpaceModel(SSMBase):
         vs.insert(0, vf[N-1])
         vLag.insert(0, self.F*vf[N-2]-K*self.H*vf[N-2])
         for i in reversed(range(N)[1:]):
+            print i
             values = self._smooth({"xp": xp[:,i], "xf-1": xf[:,i-1], "xs": xs[:,0], "vp": vp[i], "vf-1": vf[i-1], "vf-2": vf[i-2], "vs": vs[0]})
             J.insert(0, values["J"])
-            xs = np.hstack([values["xs"], xs])
+            xs = np.hstack((values["xs"], xs))
             vs.insert(0, values["vs"])
         
         for i in reversed(range(N)[2:]):
+            print i
             vLag.insert(0, vf[i-1]*J[i-1].T+J[i-1]*(vLag[0]-F*vf[i-1])*J[i-2].T)
         
         J0 = x0var*F.T*vp[0].I
@@ -77,6 +87,7 @@ class StateSpaceModel(SSMBase):
         Syy = Yobs[:,0]*Yobs[:,0].T
         Syx = Yobs[:,0]*xs[:,0].T
         for i in range(N)[1:]:
+            print i
             S11 += xs[:,i-1]*xs[:,i-1].T + vs[i-1]
             S10 += xs[:,i-1]*xs[:,i-2].T + vLag[i-1]
             S00 += xs[:,i-2]*xs[:,i-2].T + vs[i-2]
@@ -125,6 +136,41 @@ class StateSpaceModel(SSMBase):
             "vs": result["vs"],
             "logllh": logllh
             }
+
+    def expectation(self, observation):
+        print "expectation"
+        result = self.__pfs(observation)
+        logllh = self.__calc_loglikelihood(result, observation)
+        return {
+            "xp": result["xp"],
+            "vp": result["vp"],
+            "xf": result["xf"],
+            "vf": result["vf"],
+            "xs0": result["xs0"],
+            "xs": result["xs"],
+            "vs0": result["vs0"],
+            "vs": result["vs"],
+            "S11": result["S11"],
+            "S10": result["S10"],
+            "S00": result["S00"],
+            "Syy": result["Syy"],
+            "Syx": result["Syx"],
+            "logllh": logllh
+            }
+
+    def maximization(self, values, observation):
+        N = observation.shape[0] # number of time points
+        self.F = values["S10"]*values["S00"].I
+        self.H = values["Syx"]*values["S11"].I
+        #self.Q = (values["S11"] - values["S10"]*values["S00"].I*values["S10"].T)/N
+        self.R = np.diag(np.diag(values["Syy"] - values["Syx"]*np.linalg.inv(values["S11"])*values["Syx"].T))/N
+        self.x0mean = np.asarray(values["xs0"].T)
+        self.x0var = values["vs0"]
+
+    def em_step(self):
+        values = self.expectation(self.data)
+        self.maximization(values, self.data)
+        return values["llh"]
         
 
 

@@ -4,38 +4,50 @@ import numpy as np
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 
-EM_THRESHOLD = 1e-3
+EM_THRESHOLD = 1e-1
 EM_ITERATION_MAXIMUM_COUNT = 5000
 
-class EM:
-    #def __init__(self, model, data):
-        # model instance for em
-        #self.model = model
-        #self.data = data
-        #self.N = data.shape[0]
+class EMmixin:
+    def __iter__(self):
+        return self
 
-    def __Estep(self):
-        """ Private method: Expectation step of EM algorithm for specified model """
-        self.expectation_delegate(self)
-
-    def __Mstep(self):
-        """ Private method: Maximization step of EM algorithm for specified model """
-        self.maximization_delegate(self)
-
-    def expectation_delegate(self):
-        assert 0, "Not implemented expectation_delegate method in child class"
-
-    def maximization_delegate(self):
-        assert 0, "Not implemented maximization_delegate method in child class"
-
-    def em_execute(self):
+    def next(self):
         """ Execute EM algorithm """
         count = 0
         diff = 100
         while diff>EM_THRESHOLD and count<EM_ITERATION_MAXIMUM_COUNT:
             print count,
-            self.__Estep()
-            self.__Mstep()
+            yield self.em_step()
+            if count>0: diff = abs(self.llh[count] - self.llh[count-1])
+            print "\tllh:", self.llh[count]
+            count += 1
+
+    def setData(self, obs):
+        self.data = obs
+        
+    def em_step(self):
+        assert 0, "Not implemented em_step method in child class"
+    
+    def expectation(self):
+        assert 0, "Not implemented expectation method in child class"
+
+    def maximization(self):
+        assert 0, "Not implemented maximization method in child class"
+
+
+class EM:
+    def __init__(self, _model, _data):
+        self.model = _model
+        self.model.setData(_data)
+
+    def execute(self):
+        """ Execute EM algorithm """
+        count = 0
+        diff = 100
+        llh = []
+        while diff>EM_THRESHOLD and count<EM_ITERATION_MAXIMUM_COUNT:
+            print count
+            llh.append(self.model.em_step())
             if count>0: diff = abs(self.llh[count] - self.llh[count-1])
             print "\tllh:", self.llh[count]
             count += 1
@@ -43,9 +55,8 @@ class EM:
         #return 1
 
 
-
 if __name__ == "__main__":
-    print "kalman.py: Called in main process."
+    print "base.py: Called in main process."
 
     if 0:
         obs_p = 2

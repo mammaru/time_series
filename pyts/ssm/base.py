@@ -28,7 +28,7 @@ def gen_data(self, model, N):
 
 class TimeSeriesModel:
     def __init__(self, **args):
-        initialize(args)
+        print args
 
     def __str__(self):
         return ''
@@ -37,10 +37,11 @@ class TimeSeriesModel:
         raise ValueError("Model initialization failed.")
 
 
-class SSMBase(TimeSeriesModel, EM):
+class BaseSSM(TimeSeriesModel, EM):
     SSM_METHODS = {}
 
-    def initialize(p, k):
+    def __init__(self, p, k):
+        #super.__init__(super, p, k)
         self.obs_dim = p
         self.sys_dim = k
         self.x0mean = np.matrix(np.random.randn(k, 1))
