@@ -8,7 +8,7 @@ Author: mammaru <mauma1989@gmail.com>
 import numpy as np
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from ..base import EM
+from ..base import TimeSeriesModel
 from ..util.matrix import *
 
 
@@ -26,18 +26,7 @@ def gen_data(self, model, N):
     return sys_value, obs_value #return as taple object
 
 
-class TimeSeriesModel:
-    def __init__(self, **args):
-        print args
-
-    def __str__(self):
-        return ''
-
-    def initialize(**args):
-        raise ValueError("Model initialization failed.")
-
-
-class BaseSSM(TimeSeriesModel, EM):
+class StateSpaceModel(TimeSeriesModel):
     SSM_METHODS = {}
 
     def __init__(self, p, k):
@@ -45,7 +34,7 @@ class BaseSSM(TimeSeriesModel, EM):
         self.obs_dim = p
         self.sys_dim = k
         self.x0mean = np.matrix(np.random.randn(k, 1))
-        self.x0var = np.matrix(np.eye(k)) # fixed
+        self.x0var = identity(k)#np.matrix(np.eye(k)) # fixed
         self.F = np.matrix(np.random.randn(k,k)) # system transition matrix
         #self.F = np.matrix(DataFrame(self.F).applymap(lambda x: 0 if np.abs(x)>0.5 else x))
         self.F[abs(self.F)<1] = 0 # make matrix sparse
@@ -53,7 +42,12 @@ class BaseSSM(TimeSeriesModel, EM):
         self.H = np.matrix(np.eye(p,k)) # observation transition matrix
         self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
 
-    @classmethod
+    def __call__(self, data):
+        return self.execute(data)
+
+    def execute(self, data):
+        assert 0, "Not implemented \"execute\" method"
+
     def params():
         pass
 

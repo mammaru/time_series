@@ -1,4 +1,5 @@
 __version__ = '0.0.1'
 
-import ssm
+#import .base
+from .base import EM, TimeSeriesModel
 

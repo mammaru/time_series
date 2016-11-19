@@ -2,7 +2,7 @@
 
 import numpy as np
 #import pandas as pd
-from pandas import DataFrame, Series
+#from pandas import DataFrame, Series
 
 def identity(p, k=None):
     if k is None:

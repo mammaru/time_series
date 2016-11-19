@@ -1,4 +1,4 @@
-from .base import SSMBase
-from .kalman import StateSpaceModel
+#from .base import StateSpaceModel
+from .kalman import SSMKalman
 
 #__all__ = ["StateSpaceModel"]
