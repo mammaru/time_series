@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from pyts.ssm import SSMKalman as SSM
 from pyts.example.data import exchange
 from pyts.base import EM
+from pyts.util import normalize
 
 if __name__ == "__main__":
     if 1:
@@ -28,7 +29,9 @@ if __name__ == "__main__":
 
     # SSM
     if 1:
-        ssm =  SSM(price.shape[1],10)
+        data = normalize(price)
+        #print np.mean(data), np.std(data)
+        ssm =  SSM(observation_dimention=data.shape[1],system_dimention=10)
         em = EM()
-        em(ssm, price)
-        #em.execute()
+        em(ssm, data)
+        #em.execute(ssm, data)

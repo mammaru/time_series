@@ -4,7 +4,7 @@ import pandas as pd
 base = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.normpath(os.path.join(base, 'data'))
 
-def exchange():
+def exchange(normalization=True):
     filename = data_path + '/exchange.dat'
     print 'Loading data from: ' + filename
     df = pd.read_table(filename, index_col="datetime")

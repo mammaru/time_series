@@ -6,8 +6,7 @@ Author: mammaru <mauma1989@gmail.com>
 
 """
 import numpy as np
-from pandas import DataFrame, Series
-from matplotlib import pyplot as plt
+from pandas import DataFrame
 from ..base import TimeSeriesModel
 from ..util.matrix import *
 
@@ -27,20 +26,19 @@ def gen_data(self, model, N):
 
 
 class StateSpaceModel(TimeSeriesModel):
-    SSM_METHODS = {}
-
-    def __init__(self, p, k):
-        #super.__init__(super, p, k)
-        self.obs_dim = p
-        self.sys_dim = k
-        self.x0mean = np.matrix(np.random.randn(k, 1))
-        self.x0var = identity(k)#np.matrix(np.eye(k)) # fixed
-        self.F = np.matrix(np.random.randn(k,k)) # system transition matrix
+    """State Space Model"""
+    def __init__(self, observation_dimention, system_dimention):
+        super(StateSpaceModel, self).__init__()
+        self.obs_dim = observation_dimention
+        self.sys_dim = system_dimention
+        self.x0mean = np.matrix(np.random.randn(system_dimention, 1))
+        self.x0var = identity(system_dimention)#np.matrix(np.eye(k)) # fixed
+        self.F = np.matrix(np.random.randn(system_dimention,system_dimention))
         #self.F = np.matrix(DataFrame(self.F).applymap(lambda x: 0 if np.abs(x)>0.5 else x))
         self.F[abs(self.F)<1] = 0 # make matrix sparse
-        self.Q = np.matrix(np.eye(k)) # system noise variance
-        self.H = np.matrix(np.eye(p,k)) # observation transition matrix
-        self.R = np.matrix(np.diag(np.diag(np.random.rand(p,p)))) # observation noise variance
+        self.Q = np.matrix(np.eye(system_dimention)) # system noise variance
+        self.H = np.matrix(np.eye(observation_dimention,system_dimention)) # observation matrix
+        self.R = np.matrix(np.diag(np.diag(np.random.rand(observation_dimention,observation_dimention)))) # observation noise variance
 
     def __call__(self, data):
         return self.execute(data)
@@ -61,5 +59,5 @@ class StateSpaceModel(TimeSeriesModel):
 #        R = kwds.pop("R", None) if "R" in kwds else self.R
 #        return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
 
-    def __set_method(self, _method):
-        pass
+# nickname
+DynamicLinearModel = StateSpaceModel
