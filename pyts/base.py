@@ -1,60 +1,108 @@
 #coding: utf-8
-#import numpy as np
+import numpy as np
 #import pandas as pd
-#from pandas import DataFrame
+from pandas import DataFrame
 
-EM_THRESHOLD = 1e-1
-EM_ITERATION_MAXIMUM_COUNT = 5000
 
-class TimeSeriesModel(object):
+class TimeSeries(DataFrame):
+    """ Wrapper class of DataFrame of pandas"""
+    def __init__(self, x, n=None, t=None, p=None, name='TimeSeries'):
+        index = n or t
+        if index is not None:
+            if p is not None:
+                super(TimeSeries, self).__init__(x, index=index, columns=p)
+            else:
+                super(TimeSeries, self).__init__(x, index=index)
+        else:
+            if p is not None:
+                super(TimeSeries, self).__init__(x, columns=p)
+            else:
+                super(TimeSeries, self).__init__(x)
+        self.name = name
+
+    def __str__(self):
+        print 'TimeSeries:'
+        return super(TimeSeries, self).__str__()
+
+    def acv(self, k):
+        mu = self.mean() # Series
+        y = self.values
+        N, M = self.shape
+        result = []
+        for m in range(M):
+            tmp = 0.0
+            for n in range(k+1, N):
+                tmp += (y[n,m] - mu[m])*(y[n-k,m] - mu[m])
+            result.append(tmp/N)
+        return np.array(result)
+        
+    def acf(self, k):
+        auto_cov = self.acv(k)
+        auto_cov_0 = self.acv(0)
+        return auto_cov/auto_cov_0
+        
+
+    def ccv(self, k):
+        mu = self.mean() # Series
+        y = self.values
+        N, M = self.shape
+        auto_cov = self.acv(k)
+        result = np.diag(auto_cov)
+        for l in range(M):
+            for m in range(M):
+                if l!=m:
+                    tmp = 0.0
+                    for n in range(k+1, N):
+                        tmp += (y[n,l] - mu[l])*(y[n-k,m] - mu[m])
+                    result[l,m] = tmp/N
+                    result[m,l] = -tmp/N
+        return result
+
+    def ccf(self, k):
+        N, M = self.shape
+        cross_cov = self.ccv(k)
+        cross_cov_0 = self.ccv(0)
+        result = np.diag(self.acf(k))
+        for i in range(M):
+            for j in range(M):
+                if i!=j:
+                    result[i,j] = cross_cov[i,j] / np.sqrt(cross_cov_0[i,i] * cross_cov_0[j,j])
+        return result
+
+class Parameters:
     def __init__(self):
         pass
 
+class TimeSeriesModel(object):
+    def __init__(self, **args):
+        self.name = 'Time Series Model'
+        self.__set_parameters(args.items())
+        #self.parameters = self.params
+
     def __str__(self):
-        return ''
+        return self.name
 
-    def initialize(**args):
-        raise ValueError("Model initialization failed.")
+    def __set_parameters(self, parameters):
+        self.__params = []
+        for key, value in parameters:
+            self.__params.append(key)
+            setattr(self, key, value)
+            #instance_attr = key
+            #instance_attr[key] = value
 
+    @property
+    def params(self):
+        pass
 
-class EMmixin:
-    def setData(self, obs):
-        self.data = obs
+    @params.getter
+    def params(self):
+        parameters = {}
+        for key in self.__params:
+            parameters[key] = getattr(self, key)
+        #print dic
+        return parameters
 
-    def em_step_delegate(self, data):
-        return self.em_step(data)
+    def describe(self):
+        print 'Description of ' + self.name
+        print self.params
 
-    def em_step(self, data):
-        assert 0, "Not implemented em_step method in child class"
-    
-    def expectation(self):
-        assert 0, "Not implemented expectation method in child class"
-
-    def maximization(self):
-        assert 0, "Not implemented maximization method in child class"
-
-
-class EM:
-    def __init__(self, threshold = EM_THRESHOLD, max_count = EM_ITERATION_MAXIMUM_COUNT):
-        self.threshold = threshold
-        self.iteration_max_count = max_count
-
-    def __call__(self, _model, _data):
-        self.execute(_model, _data)
-
-    def execute(self, _model, _data):
-        """ Execute EM algorithm """
-        print "Start EM algorithm"
-        self.model = _model
-        #self.model.setData(_data)        
-        count = 0
-        diff = 100
-        llh = []
-        while diff>self.threshold and count<self.iteration_max_count:
-            print count,
-            llh.append(self.model.em_step_delegate(_data))
-            if count>0: diff = abs(llh[count] - llh[count-1])
-            print "likelihood:", llh[count]
-            count += 1
-        print ""
-        return llh

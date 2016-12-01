@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from ..base import TimeSeries
 
 base = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.normpath(os.path.join(base, 'data'))
@@ -13,4 +14,4 @@ def exchange(normalization=True):
     daily = df.resample("D", how="mean") # daily
     price = daily.ix[:, daily.columns.map(lambda x: x.endswith("PRICE"))]
     volume = daily.ix[:, daily.columns.map(lambda x: x.endswith("VOLUME"))]
-    return {"price": price, "volume": volume}
+    return {"price": TimeSeries(price), "volume": TimeSeries(volume)}

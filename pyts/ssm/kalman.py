@@ -7,11 +7,11 @@ Author: mammaru <mauma1989@gmail.com>
 """
 import numpy as np
 from pandas import DataFrame
-from .base import StateSpaceModel
-from ..base import EMmixin
+from .base import DynamicLinearModel
+from ..em import EMable
 
 
-class SSMKalman(StateSpaceModel, EMmixin):
+class SSMKalman(DynamicLinearModel, EMable):
     def __predict(self, values):
         return {
             "xp": self.F*values["xf"],
@@ -125,7 +125,7 @@ class SSMKalman(StateSpaceModel, EMmixin):
             Syx += obs[:,i-1]*s_result["xs"][:,i-1].T
 
         return {
-            "xp": pf_result["xp"],
+            "xp": pf_result["xp"].T,
             "vp": pf_result["vp"],
             "xf": pf_result["xf"].T,
             "vf": pf_result["vf"],
@@ -194,8 +194,8 @@ class SSMKalman(StateSpaceModel, EMmixin):
         self.F = values["S10"]*values["S00"].I
         self.H = values["Syx"]*values["S11"].I
         self.Q = (values["S11"] - values["S10"]*values["S00"].I*values["S10"].T)/N
-        self.R = np.diag(np.diag(values["Syy"] - values["Syx"]*np.linalg.inv(values["S11"])*values["Syx"].T))/N
-        self.x0mean = np.asarray(values["xs0"].T)
+        self.R = np.matrix(np.diag(np.diag(values["Syy"] - values["Syx"]*np.linalg.inv(values["S11"])*values["Syx"].T))/N)
+        self.x0mean = np.matrix(values["xs0"].T)
         self.x0var = values["vs0"]
 
     def em_step(self, data):

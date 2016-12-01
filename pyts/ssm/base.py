@@ -25,20 +25,29 @@ def gen_data(self, model, N):
     return sys_value, obs_value #return as taple object
 
 
-class StateSpaceModel(TimeSeriesModel):
-    """State Space Model"""
-    def __init__(self, observation_dimention, system_dimention):
-        super(StateSpaceModel, self).__init__()
-        self.obs_dim = observation_dimention
-        self.sys_dim = system_dimention
-        self.x0mean = np.matrix(np.random.randn(system_dimention, 1))
-        self.x0var = identity(system_dimention)#np.matrix(np.eye(k)) # fixed
-        self.F = np.matrix(np.random.randn(system_dimention,system_dimention))
+class DynamicLinearModel(TimeSeriesModel):
+    """Dynamic Linear Model"""
+    def __init__(self, observation_dimention, system_dimention, x0mean=None, x0var=None, F=None, Q=None, H=None, R=None):
+        #self.obs_dim = observation_dimention
+        #self.sys_dim = system_dimention
+        #self.x0mean = np.matrix(np.random.randn(system_dimention, 1))
+        #self.x0var = identity(system_dimention)#np.matrix(np.eye(k)) # fixed
+        #self.F = np.matrix(np.random.randn(system_dimention,system_dimention))
         #self.F = np.matrix(DataFrame(self.F).applymap(lambda x: 0 if np.abs(x)>0.5 else x))
-        self.F[abs(self.F)<1] = 0 # make matrix sparse
-        self.Q = np.matrix(np.eye(system_dimention)) # system noise variance
-        self.H = np.matrix(np.eye(observation_dimention,system_dimention)) # observation matrix
-        self.R = np.matrix(np.diag(np.diag(np.random.rand(observation_dimention,observation_dimention)))) # observation noise variance
+        #self.F[abs(self.F)<1] = 0 # make matrix sparse
+        #self.Q = np.matrix(np.eye(system_dimention)) # system noise variance
+        #self.H = np.matrix(np.eye(observation_dimention,system_dimention)) # observation matrix
+        #self.R = np.matrix(np.diag(np.diag(np.random.rand(observation_dimention,observation_dimention)))) # observation noise variance
+        super(DynamicLinearModel, self).__init__(obs_dim=observation_dimention,
+                                              sys_dim=system_dimention,
+                                              x0mean=x0mean or np.matrix(np.random.randn(system_dimention, 1)),
+                                              x0var=x0var or identity(system_dimention), #np.matrix(np.eye(k)) # fixed
+                                              F=F or np.matrix(np.random.randn(system_dimention,system_dimention)),
+                                              Q=Q or np.matrix(np.eye(system_dimention)),
+                                              H=H or np.matrix(np.eye(observation_dimention,system_dimention)),
+                                              R=R or np.matrix(np.diag(np.diag(np.random.rand(observation_dimention,observation_dimention)))))
+        self.name = 'Dynamic Linear Model'
+
 
     def __call__(self, data):
         return self.execute(data)
@@ -59,5 +68,3 @@ class StateSpaceModel(TimeSeriesModel):
 #        R = kwds.pop("R", None) if "R" in kwds else self.R
 #        return np.asarray(self.H * x + np.matrix(np.random.multivariate_normal(np.zeros([1,self.obs_dim]).tolist()[0], np.asarray(self.R))).T)
 
-# nickname
-DynamicLinearModel = StateSpaceModel

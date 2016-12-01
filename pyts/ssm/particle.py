@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import norm
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from core import StateSpaceModel as SSM
+from .base import StateSpaceModel
 
 Nthr = 1e-1
 
@@ -23,14 +23,10 @@ class Particle:
     def move(self, model): # model = some equation such like system equation.
         self.position = np.array(model(np.matrix(self.position).T)).T
 
-class ParticleFilter:
+class SequentialMonteCarlo(StateSpaceModel):
 
 
-    def __init__(self,
-                 data,
-                 num_particles=100,
-                 dim_particle=10,
-                 ):
+    def __init__(self, data, num_particles=100, dim_particle=10):
         
         self.dim_particle = dim_particle
         self.num_particles = num_particles
@@ -95,7 +91,7 @@ class ParticleFilter:
             self.particles[j].position = self.particles[i].position
             self.particles[j].weight = 1.0/NP
 
-    def execute(self):
+    def SIR(self):
         DP = self.dim_particle
         NP = self.num_particles
         N = self.N
