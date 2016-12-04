@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from ..base import TimeSeries
+from ..core.series import TimeSeries
 
 base = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.normpath(os.path.join(base, 'data'))

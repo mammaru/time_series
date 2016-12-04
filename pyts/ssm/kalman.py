@@ -7,11 +7,11 @@ Author: mammaru <mauma1989@gmail.com>
 """
 import numpy as np
 from pandas import DataFrame
-from .base import DynamicLinearModel
+#from .base import DynamicLinearModel
 from ..em import EMable
 
 
-class SSMKalman(DynamicLinearModel, EMable):
+class KalmanMixin(EMable):
     def __predict(self, values):
         return {
             "xp": self.F*values["xf"],

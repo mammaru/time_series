@@ -1,5 +1,5 @@
 __version__ = '0.0.1'
 
-#import .base
-from .base import TimeSeries, TimeSeriesModel
+from .core.base import *
+from .core.series import TimeSeries
 from .em import EM

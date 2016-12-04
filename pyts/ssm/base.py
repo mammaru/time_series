@@ -7,9 +7,9 @@ Author: mammaru <mauma1989@gmail.com>
 """
 import numpy as np
 from pandas import DataFrame
-from ..base import TimeSeriesModel
+from ..core.base import TimeSeriesModel
 from ..util.matrix import *
-
+from .kalman import KalmanMixin
 
 def gen_data(self, model, N):
     sys_value = np.random.randn(model.sys_dim,1)
@@ -25,7 +25,7 @@ def gen_data(self, model, N):
     return sys_value, obs_value #return as taple object
 
 
-class DynamicLinearModel(TimeSeriesModel):
+class DynamicLinearModel(TimeSeriesModel, KalmanMixin):
     """Dynamic Linear Model"""
     def __init__(self, observation_dimention, system_dimention, x0mean=None, x0var=None, F=None, Q=None, H=None, R=None):
         #self.obs_dim = observation_dimention
@@ -54,9 +54,6 @@ class DynamicLinearModel(TimeSeriesModel):
 
     def execute(self, data):
         assert 0, "Not implemented \"execute\" method"
-
-    def params():
-        pass
 
 #    def system_equation(self, x, **kwds):
 #        F = kwds.pop("F", None) if "F" in kwds else self.F

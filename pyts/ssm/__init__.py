@@ -1,4 +1,4 @@
 #from .base import StateSpaceModel
-from .kalman import SSMKalman
+from .base import DynamicLinearModel
 
 #__all__ = ["StateSpaceModel"]

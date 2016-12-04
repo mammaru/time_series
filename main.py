@@ -2,11 +2,11 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from pyts.ssm import SSMKalman as SSM
-from pyts.example.data import exchange
+from pyts.ssm import DynamicLinearModel as DLM
+from pyts.example import exchange
 from pyts.em import EM
 from pyts.util import normalize
-from pyts.base import TimeSeries as ts
+from pyts.core.series import TimeSeries as ts
 
 if __name__ == "__main__":
     if 1:
@@ -34,14 +34,14 @@ if __name__ == "__main__":
         tmp.describe()
 
     # SSM
-    if 0:
+    if 1:
         data = normalize(price[[0,1,2,4,5]])
         #print np.mean(data), np.std(data)
-        ssm =  SSM(observation_dimention=data.shape[1],system_dimention=2)
-        ssm.describe()
+        dlm =  DLM(observation_dimention=data.shape[1],system_dimention=2)
+        dlm.describe()
         #print params
-        #for key, value in ssm.params:
+        #for key, value in dlm.params:
             #print key, value
         em = EM()
-        em(ssm, data)
-        #em.execute(ssm, data)
+        em(dlm, data)
+        #em.execute(dlm, data)
