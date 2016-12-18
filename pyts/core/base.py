@@ -55,7 +55,6 @@ class TimeSeriesModel(object):
     def __init__(self, **args):
         self.name = 'Time Series Model'
         self.__set_parameters(args.items())
-        #self.parameters = self.params
 
     def __str__(self):
         return self.name
@@ -65,8 +64,6 @@ class TimeSeriesModel(object):
         for key, value in parameters:
             self.__params.append(key)
             setattr(self, key, value)
-            #instance_attr = key
-            #instance_attr[key] = value
 
     @property
     def params(self):
@@ -76,7 +73,9 @@ class TimeSeriesModel(object):
         #print dic
         return parameters
 
+    #parameters = self.params
+
     def describe(self):
         print 'Description of ' + self.name
-        print self.params
+        print 'Parameters:', self.__params
 

@@ -10,9 +10,9 @@ from pyts.core.series import TimeSeries as ts
 
 if __name__ == "__main__":
     if 1:
-        data = exchange()
-        price = data["price"]
-        volume = data["volume"]
+        ex = exchange()
+        price = ex["price"]
+        volume = ex["volume"]
 
     # SVAR
     if 0:
