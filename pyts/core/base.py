@@ -65,6 +65,7 @@ class TimeSeriesModel(object):
             self.__params.append(key)
             setattr(self, key, value)
 
+    # TODO: pretty print not implemented
     @property
     def params(self):
         parameters = {}
@@ -72,8 +73,6 @@ class TimeSeriesModel(object):
             parameters[key] = getattr(self, key)
         #print dic
         return parameters
-
-    #parameters = self.params
 
     def describe(self):
         print 'Description of ' + self.name
