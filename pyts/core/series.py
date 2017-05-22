@@ -16,9 +16,10 @@ class TimeSeries(DataFrame):
         index = n or t
         super(TimeSeries, self).__init__(x, index=index, columns=p)
         self.name = name
+        self.__check_direction()
 
     def __check_vertical(self):
-        if isinstance(self.index, DatetimeIndex) or not isinstance(self.columns, DatetimeIndex):
+        if isinstance(self.index, DatetimeIndex): #or not isinstance(self.columns, DatetimeIndex):
             return True
         else:
             return False
@@ -29,11 +30,22 @@ class TimeSeries(DataFrame):
         else:
             return False
 
-    def __ensure_direction(self):
-        if __check_vertical():
-            self.timepoints = self.index
-        elif __check_horizontal():
+    def __check_direction(self):
+        if isinstance(self.index, DatetimeIndex): #or not isinstance(self.columns, DatetimeIndex):
+            self.__direction = self.index
+        elif isinstance(self.columns, DatetimeIndex):
             self.timepoints = self.columns
+        else:
+            self.timepoints = self.index
+
+    @property
+    def timepoints(self):
+        if self.__check_vertical():
+            return self.index 
+        elif self.__check_horizontal():
+            return self.columns
+        else:
+            return undifined
 
     def to_dataframe(self):
         return DataFrame(self.values, index=self.index, columns=self.columns)
@@ -45,17 +57,21 @@ class TimeSeries(DataFrame):
         print 'TimeSeries:'
         return super(TimeSeries, self).__str__()
 
-    # TODO: map or apply is better
+    def transpose(self):
+        """Transpose index and columns"""
+        return TimeSeries(super(TimeSeries, self).T)
+        #return super(DataFrame, self).transpose(1, 0)
+
+    T = property(transpose)
+
     def acv(self, k):
         return fun_acv(self, k)
         
     def acf(self, k):
         return fun_acf(self, k)
     
-    # TODO: map or apply is better
     def ccv(self, k):
         return fun_ccv(self, k)
 
-    # TODO: map or apply is better
     def ccf(self, k):
         return fun_ccf(self, k)
