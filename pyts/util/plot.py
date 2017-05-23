@@ -12,18 +12,22 @@ def sp_matrix(i, j):
     return np.matrix(mat)
 
 def heatmap(data, **labels):
-    data = np.array(data)
+    d = np.array(data)
     fig, axis = plt.subplots(figsize=(10, 10))
-    heatmap = axis.pcolor(data, cmap=plt.cm.Reds)
-    axis.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
-    axis.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
+    heatmap = axis.pcolor(d, cmap=plt.cm.Reds)
+    axis.set_xticks(np.arange(d.shape[0])+0.5, minor=False)
+    axis.set_yticks(np.arange(d.shape[1])+0.5, minor=False)
     axis.invert_yaxis()
     axis.xaxis.tick_top()
     if labels:
+        print "bbbbbbbbbbb!"
         axis.set_xticklabels(labels["row"], minor=False)
         axis.set_yticklabels(labels["column"], minor=False)
+    elif isinstance(data, pd.DataFrame):
+        print "aaaaaaaaa!"
+        axis.set_xticklabels(data.index, minor=False)
+        axis.set_yticklabels(data.columns, minor=False)        
     fig.show()
-    #plt.savefig('image.png')
     return heatmap
 
 def digraph(data):
