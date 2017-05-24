@@ -45,7 +45,8 @@ docstring_to_string = """
 
 class TimeSeriesFormatter(DataFrameFormatter):
     """
-    Renderer of TimeSeries By Overriding DataFrameFormatter
+    Renderer of TimeSeries
+    Overriding DataFrameFormatter
 
     self.to_string() : console-friendly tabular output
     self.to_html()   : html table
@@ -61,5 +62,12 @@ class TimeSeriesFormatter(DataFrameFormatter):
         Overriding DataFrameFormatter.to_string
         Render a TimeSeries to a console-friendly tabular output.
         """
+
+        # render DataFrame into buf 
         super(TimeSeriesFormatter, self).to_string()
-        self.buf.write(", %d timepoints" % (len(self.frame.timepoints)))
+
+        additional_str = "\n" + \
+                         self.frame.name + ': ' + \
+                         "[%d timepoints x %d features]" \
+                         % (len(self.frame.timepoints), len(self.frame.features))
+        self.buf.write(additional_str)

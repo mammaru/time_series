@@ -1,54 +1,98 @@
 #coding: utf-8
+from warnings import warn
+from enum import Enum
 import numpy as np
 #import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, NaT, to_datetime
+from pandas.core.common import PandasError
 from pandas.tseries.index import DatetimeIndex
 from pandas.util.decorators import Appender
 import pyts.core.format as fmt
-from .base import acv as fun_acv
-from .base import acf as fun_acf
-from .base import ccv as fun_ccv
-from .base import ccf as fun_ccf
+from pyts.core.base import acv as fun_acv
+from pyts.core.base import acf as fun_acf
+from pyts.core.base import ccv as fun_ccv
+from pyts.core.base import ccf as fun_ccf
 
+class Direction(Enum):
+    VERTICAL = 1
+    HORIZONTAL = 2
+    UNDIFINED = 3
 
 
 class TimeSeries(DataFrame):
     """ Wrapper class of DataFrame """
-    def __init__(self, x=None, n=None, t=None, p=None, name='TimeSeries'):
-        index = n or t
-        super(TimeSeries, self).__init__(x, index=index, columns=p)
-        self.name = name
-        self.__check_direction()
-
-    def __check_vertical(self):
-        if isinstance(self.index, DatetimeIndex): #or not isinstance(self.columns, DatetimeIndex):
-            return True
+    def __init__(self, x=None, timepoints=None, name='TimeSeries'):
+        try:
+            super(TimeSeries, self).__init__(x)
+            if isinstance(timepoints, np.ndarray):
+                if timepoints.shape[0]==self.shape[0]:
+                    self.index = timepoints
+                elif timepoints.shape[1]==self.shape[1]:
+                    self.columns = timepoints
+            elif not timepoints is None:
+                if len(timepoints)==self.shape[0]:
+                    self.index = timepoints
+                elif len(timepoints)==self.shape[1]:
+                    self.columns = timepoints
+                else:
+                    raise                
+        except PandasError as e:
+            raise e
+        except SyntaxError as e:
+            raise e
+        except:
+            print('The length of timepoints is ilegal.')
         else:
-            return False
+            self.name = name
+            self.__check_direction()
 
-    def __check_horizontal(self):
-        if isinstance(self.columns, DatetimeIndex):
-            return True
+    def __setattr__(self, key, value):
+        super(TimeSeries, self).__setattr__(key, value)
+        if key=='index' or key=='columns':
+            self.__check_direction()
+
+    def __getattr__(self, key):
+        if key=='timepoints' or key=='features':
+            try:
+                super(TimeSeries, self).__getattr__(key)
+            except AttributeError as e:
+                print "Timepoints axis is ambiguous."
+                raise e
         else:
-            return False
+            super(TimeSeries, self).__getattr__(key)
 
     def __check_direction(self):
-        if isinstance(self.index, DatetimeIndex): #or not isinstance(self.columns, DatetimeIndex):
-            self.__direction = 'V'
-        elif isinstance(self.columns, DatetimeIndex):
-            self.__direction = 'H'
+        if isinstance(self.index, DatetimeIndex) and not isinstance(self.columns, DatetimeIndex):
+            self.__set_vertical()
+        elif isinstance(self.columns, DatetimeIndex) and not isinstance(self.index, DatetimeIndex):
+            self.__set_horizontal()
         else:
-            self.__direction = undifined
+            warn('Ambiguous Definition: index or columns should be DatetimeIndex.')
+            if self.__dict__.has_key('timepoints'):
+                self.__dict__.pop('timepoints')
+            if self.__dict__.has_key('features'):
+                self.__dict__.pop('features')
+            self.__time_direction = Direction.UNDIFINED
+
+    def __set_vertical(self):
+        self.__dict__['timepoints'] = self.index
+        self.__dict__['features'] = self.columns
+        self.__time_direction = Direction.VERTICAL
+
+    def __set_horizontal(self):
+        self.__dict__['timepoints'] = self.columns
+        self.__dict__['features'] = self.index
+        self.__time_direction = Direction.HORIZONTAL 
+
 
     @property
-    def timepoints(self):
-        if self.__check_vertical():
-            return self.index 
-        elif self.__check_horizontal():
-            return self.columns
-        else:
-            return undifined
+    def direction(self):
+        return self.__time_direction
 
+    #@property
+    #def timepoints(self):
+        #return self.__timepoints
+    
     def to_dataframe(self):
         return DataFrame(self.values, index=self.index, columns=self.columns)
 
@@ -56,7 +100,6 @@ class TimeSeries(DataFrame):
         return np.matrix(self)
 
     def __str__(self):
-        print self.name + ':'
         return super(TimeSeries, self).__str__()
 
     @Appender(fmt.docstring_to_string, indents=1)
@@ -92,16 +135,20 @@ class TimeSeries(DataFrame):
             result = formatter.buf.getvalue()
             return result
 
-
     def transpose(self):
         """Transpose index and columns"""
-        return TimeSeries(super(TimeSeries, self).T)
-        #return super(DataFrame, self).transpose(1, 0)
+        #return TimeSeries(super(TimeSeries, self).T)
+        return TimeSeries(super(DataFrame, self).transpose(1, 0))
 
     T = property(transpose)
 
     def acv(self, k):
-        return fun_acv(self, k)
+        if self.__direction == 'V':
+            return fun_acv(self, k)
+        elif self.__direction == 'H':
+            return fun_acv(self.T, k)
+        else:
+            raise
         
     def acf(self, k):
         return fun_acf(self, k)

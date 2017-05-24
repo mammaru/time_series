@@ -28,7 +28,10 @@ def main():
 Library for multivariate time series data
 -----------------------------------------
 
-Models
+Data Structure
+ - TimeSeries
+
+Statistical Models
  - Vector Auto Regressive Model
  - State Space Model
 
